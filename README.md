@@ -67,21 +67,34 @@ This is almost never a code bug in this project — every stylesheet link is roo
    paths don't resolve over `file://`. Run `npx serve .` from the project root, or push to Vercel.
 
 `vercel.json` is included with explicit static-site settings (`cleanUrls: false`, since every link
-in this project points to a literal `.html` file) and asset caching headers — no build step needed.
+in this project points to a literal `.html` file) and asset caching headers.
+
+**One correction to the paragraph above**: this project now has a tiny build step (added when we
+switched to environment-variable-based config instead of hardcoding keys) — see step 3 below.
+`vercel.json` sets `buildCommand: npm run build`, which runs `scripts/generate-config.js`.
 
 ## Setup (in order)
 
 1. Create a free project at supabase.com.
 2. SQL Editor → paste in `database/schema.sql` → Run. Creates all 10 tables, RLS policies, and the
    new-user/role-protection triggers.
-3. Project Settings → API → copy your Project URL and anon/public key into `assets/js/config.js`.
-4. Serve the project locally (`npx serve .`) and go to `/pages/register.html` to create your own
-   patient account.
+3. In Vercel → Project Settings → Environment Variables, add:
+   - `SUPABASE_URL` — your Project URL from Supabase → Settings → API
+   - `SUPABASE_ANON_KEY` — your anon/public key from the same page
+   - `KORAPAY_PUBLIC_KEY` — once you have it (step 7) — optional until then, the build falls back
+     to a placeholder if it's not set yet
+   These get read by `scripts/generate-config.js` at build time to generate `assets/js/config.js`
+   — that file is gitignored on purpose and never committed with real keys.
+4. Redeploy (or push any commit) so Vercel runs the build with those variables available. Then go
+   to `/pages/register.html` on your live site to create your own patient account.
 5. In SQL Editor, run: `update public.profiles set role = 'admin' where email = 'your@email.com';`
    You're now an admin. **Bookmark `/pages/admin/login.html` directly** — it's not linked anywhere
    in the UI on purpose. Use the dashboard from here on to create Doctor/Pharmacist accounts; each
    creation shows you that staff member's own hidden login URL to pass along.
-6. Install the Supabase CLI, deploy the four Edge Functions in `/api`:
+6. Install the Supabase CLI, run `supabase login` and `supabase link` to connect it to this project,
+   then deploy the four Edge Functions (now correctly laid out under `supabase/functions/<name>/index.ts`,
+   which is the structure the CLI actually expects — and also out of Vercel's reserved `/api` path,
+   which was causing harmless-but-noisy TypeScript errors in the Vercel build log):
    ```
    supabase functions deploy admin-create-staff
    supabase functions deploy admin-delete-staff
@@ -89,9 +102,10 @@ in this project points to a literal `.html` file) and asset caching headers — 
    supabase functions deploy korapay-webhook --no-verify-jwt
    ```
    Set secrets: `supabase secrets set SUPABASE_SERVICE_ROLE_KEY=... KORAPAY_SECRET_KEY=sk_test_...`
-7. Get a free Korapay test account, put your **public** key (`pk_test_...`) in `config.js`, and set
-   the `korapay-webhook` function's URL as your webhook URL in Korapay's test dashboard.
-8. Deploy to Vercel (see Root Directory note above) or keep running `npx serve .` locally.
+7. Get a free Korapay test account, add your **public** key (`pk_test_...`) as the `KORAPAY_PUBLIC_KEY`
+   environment variable in Vercel (same place as step 3) and redeploy. Set the `korapay-webhook`
+   function's URL as your webhook URL in Korapay's test dashboard.
+8. That's it — every push to `main` redeploys automatically via Vercel.
 
 ## Project structure
 
@@ -110,7 +124,7 @@ in this project points to a literal `.html` file) and asset caching headers — 
 /assets/css/              variables.css (design tokens), base.css, components.css
 /assets/js/               config.js, supabaseClient.js, auth.js, validators.js, toast.js, korapay.js, receipt.js
 /assets/js/api/           one module per domain — every real Supabase query lives here
-/api/                     4 Supabase Edge Function templates (service-role operations)
+/supabase/functions/      4 Supabase Edge Function templates (service-role operations)
 /database/schema.sql      tables, relationships, RLS policies, security triggers
 vercel.json               static-site config, no build step
 ```
