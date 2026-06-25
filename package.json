@@ -1,0 +1,9 @@
+{
+  "name": "fud-health-hms",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FUD Health Centre Hospital Management System — static site, Supabase backend.",
+  "scripts": {
+    "build": "node scripts/generate-config.js"
+  }
+}
