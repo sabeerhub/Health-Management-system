@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Doctors — FUD Health HMS</title>
+<link rel="stylesheet" href="/assets/css/variables.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body data-role="admin">
+
+<div class="app-shell" id="appShellRoot">
+  <div style="padding:32px;"><div class="skeleton skeleton-title" style="width:200px;"></div></div>
+</div>
+
+<template id="pageContent">
+  <div class="panel-head">
+    <h3>Doctors</h3>
+    <button class="btn btn-role" id="addDoctorBtn">+ Add Doctor</button>
+  </div>
+  <div class="card">
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Name</th><th>Email</th><th>Specialty</th><th>License No.</th><th>Joined</th><th></th></tr></thead>
+        <tbody id="doctorsTbody">
+          <tr><td colspan="6"><div class="skeleton skeleton-text"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</template>
+
+<script type="module">
+  import { initLayout } from "/components/layout.js";
+  import { listDoctors, createStaff, deleteStaff } from "/assets/js/api/staff.js";
+  import { openModal, closeModal, confirmAction } from "/components/modal.js";
+  import { showToast } from "/assets/js/toast.js";
+  import { icon } from "/components/icons.js";
+
+  const profile = await initLayout({ role: "admin", active: "doctors", title: "Doctors" });
+  if (profile) {
+    await loadDoctors();
+    document.getElementById("addDoctorBtn").addEventListener("click", openAddDoctorModal);
+  }
+
+  async function loadDoctors() {
+    const tbody = document.getElementById("doctorsTbody");
+    try {
+      const doctors = await listDoctors();
+      if (!doctors.length) {
+        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">${icon("doctor",40)}<p>No doctors yet. Add the first one.</p></div></td></tr>`;
+        return;
+      }
+      tbody.innerHTML = doctors.map(d => `
+        <tr>
+          <td>${d.profiles?.full_name || "—"}</td>
+          <td>${d.profiles?.email || "—"}</td>
+          <td>${d.specialty || "—"}</td>
+          <td>${d.license_number || "—"}</td>
+          <td>${new Date(d.created_at).toLocaleDateString()}</td>
+          <td><button class="btn btn-ghost btn-sm delete-btn" data-id="${d.id}" data-name="${d.profiles?.full_name || ""}">${icon("trash",16)}</button></td>
+        </tr>
+      `).join("");
+
+      tbody.querySelectorAll(".delete-btn").forEach(btn => {
+        btn.addEventListener("click", () => handleDelete(btn.dataset.id, btn.dataset.name));
+      });
+    } catch (err) {
+      showToast(err.message || "Could not load doctors.", "error");
+      tbody.innerHTML = `<tr><td colspan="6">Failed to load.</td></tr>`;
+    }
+  }
+
+  async function handleDelete(id, name) {
+    const ok = await confirmAction({
+      title: "Delete doctor account?",
+      message: `This permanently removes ${name || "this doctor"}'s login and staff record.`,
+      confirmText: "Delete",
+    });
+    if (!ok) return;
+    try {
+      await deleteStaff(id);
+      showToast("Doctor account deleted.", "success");
+      await loadDoctors();
+    } catch (err) {
+      showToast(err.message || "Could not delete doctor.", "error");
+    }
+  }
+
+  function openAddDoctorModal() {
+    openModal(`
+      <h3>Add doctor</h3>
+      <form id="addDoctorForm" style="margin-top: var(--space-4);">
+        <div class="field"><label>Full name</label><input class="input" id="newDocName" required></div>
+        <div class="field"><label>Email</label><input class="input" type="email" id="newDocEmail" required></div>
+        <div class="grid-2">
+          <div class="field"><label>Specialty</label><input class="input" id="newDocSpecialty" placeholder="General Practice"></div>
+          <div class="field"><label>License No.</label><input class="input" id="newDocLicense"></div>
+        </div>
+        <div class="field"><label>Temporary password</label><input class="input" type="password" id="newDocPassword" minlength="8" required></div>
+        <div style="display:flex; gap: var(--space-3); justify-content:flex-end; margin-top: var(--space-3);">
+          <button type="button" class="btn btn-secondary" id="cancelAddDoc">Cancel</button>
+          <button type="submit" class="btn btn-role" id="submitAddDoc">Add doctor</button>
+        </div>
+      </form>
+    `);
+    document.getElementById("cancelAddDoc").addEventListener("click", closeModal);
+    document.getElementById("addDoctorForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("submitAddDoc");
+      btn.disabled = true; btn.textContent = "Adding…";
+      try {
+        await createStaff({
+          email: document.getElementById("newDocEmail").value.trim(),
+          password: document.getElementById("newDocPassword").value,
+          fullName: document.getElementById("newDocName").value.trim(),
+          role: "doctor",
+          specialty: document.getElementById("newDocSpecialty").value.trim(),
+          licenseNumber: document.getElementById("newDocLicense").value.trim(),
+        });
+        showToast("Doctor account created. Share this sign-in link: " + window.location.origin + "/pages/doctor/login.html", "success", 9000);
+        closeModal();
+        await loadDoctors();
+      } catch (err) {
+        showToast(err.message || "Could not create doctor account.", "error");
+        btn.disabled = false; btn.textContent = "Add doctor";
+      }
+    });
+  }
+</script>
+</body>
+</html>

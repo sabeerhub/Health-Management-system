@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prescriptions — FUD Health HMS</title>
+<link rel="stylesheet" href="/assets/css/variables.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body data-role="pharmacist">
+
+<div class="app-shell" id="appShellRoot">
+  <div style="padding:32px;"><div class="skeleton skeleton-title" style="width:200px;"></div></div>
+</div>
+
+<template id="pageContent">
+  <h3 style="margin-bottom: var(--space-4);">Incoming prescriptions</h3>
+  <div class="card" style="margin-bottom: var(--space-6);">
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Patient</th><th>Medication</th><th>Dosage</th><th>Duration</th><th>Prescribed by</th><th></th></tr></thead>
+        <tbody id="incomingTbody"><tr><td colspan="6"><div class="skeleton skeleton-text"></div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <h3 style="margin-bottom: var(--space-4);">Dispensing history</h3>
+  <div class="card">
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Patient</th><th>Medicine dispensed</th><th>Qty</th><th>Date</th></tr></thead>
+        <tbody id="historyTbody"><tr><td colspan="4"><div class="skeleton skeleton-text"></div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</template>
+
+<script type="module">
+  import { initLayout } from "/components/layout.js";
+  import { listIncomingPrescriptions, dispensePrescription, listDispensingHistory } from "/assets/js/api/prescriptions.js";
+  import { listStock } from "/assets/js/api/stock.js";
+  import { openModal, closeModal } from "/components/modal.js";
+  import { showToast } from "/assets/js/toast.js";
+  import { icon } from "/components/icons.js";
+
+  const profile = await initLayout({ role: "pharmacist", active: "prescriptions", title: "Prescriptions" });
+  if (profile) {
+    await loadIncoming();
+    await loadHistory();
+  }
+
+  async function loadIncoming() {
+    const tbody = document.getElementById("incomingTbody");
+    try {
+      const rx = await listIncomingPrescriptions();
+      if (!rx.length) {
+        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">${icon("prescription",40)}<p>No pending prescriptions.</p></div></td></tr>`;
+        return;
+      }
+      tbody.innerHTML = rx.map(r => `
+        <tr>
+          <td>${r.patients?.profiles?.full_name || "—"} <span class="text-muted" style="font-size:var(--fs-xs);">(${r.patients?.reg_number || ""})</span></td>
+          <td>${r.medication}</td>
+          <td>${r.dosage}</td>
+          <td>${r.duration}</td>
+          <td>Dr. ${r.doctors?.profiles?.full_name || "—"}</td>
+          <td><button class="btn btn-sm btn-role dispense-btn" data-id="${r.id}" data-med="${r.medication}">Dispense</button></td>
+        </tr>
+      `).join("");
+      tbody.querySelectorAll(".dispense-btn").forEach(b => b.addEventListener("click", () => openDispenseModal(b.dataset.id, b.dataset.med)));
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  }
+
+  async function loadHistory() {
+    const tbody = document.getElementById("historyTbody");
+    try {
+      const history = await listDispensingHistory();
+      if (!history.length) {
+        tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state">${icon("history",40)}<p>No dispensing history yet.</p></div></td></tr>`;
+        return;
+      }
+      tbody.innerHTML = history.map(h => `
+        <tr>
+          <td>${h.prescriptions?.patients?.profiles?.full_name || "—"}</td>
+          <td>${h.pharmacy_stock?.medicine_name || h.prescriptions?.medication || "—"}</td>
+          <td>${h.quantity_dispensed}</td>
+          <td>${new Date(h.dispensed_at).toLocaleString()}</td>
+        </tr>
+      `).join("");
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  }
+
+  async function openDispenseModal(prescriptionId, medicationName) {
+    let stock = [];
+    try { stock = await listStock(); } catch (err) { showToast(err.message, "error"); return; }
+
+    openModal(`
+      <h3>Dispense — ${medicationName}</h3>
+      <form id="dispenseForm" style="margin-top: var(--space-4);">
+        <div class="field">
+          <label>Stock item</label>
+          <select class="input" id="stockSelect" required>
+            <option value="" disabled selected>Select matching stock item</option>
+            ${stock.map(s => `<option value="${s.id}" data-available="${s.quantity}">${s.medicine_name} (${s.quantity} ${s.unit} available)</option>`).join("")}
+          </select>
+        </div>
+        <div class="field"><label>Quantity to dispense</label><input class="input" type="number" min="1" id="qtyInput" value="1" required></div>
+        <div style="display:flex; gap: var(--space-3); justify-content:flex-end; margin-top: var(--space-3);">
+          <button type="button" class="btn btn-secondary" id="cancelDispense">Cancel</button>
+          <button type="submit" class="btn btn-role" id="submitDispense">Confirm dispense</button>
+        </div>
+      </form>
+    `);
+    document.getElementById("cancelDispense").addEventListener("click", closeModal);
+    document.getElementById("dispenseForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("submitDispense");
+      btn.disabled = true; btn.textContent = "Dispensing…";
+      try {
+        await dispensePrescription({
+          prescriptionId,
+          stockId: document.getElementById("stockSelect").value,
+          pharmacistId: profile.id,
+          quantity: Number(document.getElementById("qtyInput").value),
+        });
+        showToast("Medication dispensed.", "success");
+        closeModal();
+        await loadIncoming();
+        await loadHistory();
+      } catch (err) {
+        showToast(err.message || "Could not dispense.", "error");
+        btn.disabled = false; btn.textContent = "Confirm dispense";
+      }
+    });
+  }
+</script>
+</body>
+</html>

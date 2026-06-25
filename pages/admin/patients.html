@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patients — FUD Health HMS</title>
+<link rel="stylesheet" href="/assets/css/variables.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+  .search-bar { max-width: 360px; margin-bottom: var(--space-5); }
+</style>
+</head>
+<body data-role="admin">
+
+<div class="app-shell" id="appShellRoot">
+  <div style="padding:32px;"><div class="skeleton skeleton-title" style="width:200px;"></div></div>
+</div>
+
+<template id="pageContent">
+  <h3 style="margin-bottom: var(--space-4);">Patients</h3>
+  <div class="input-wrap search-bar">
+    <i class="icon" data-lucide="search" style="width:20px;height:20px;"></i>
+    <input class="input has-icon" id="searchInput" placeholder="Search by name or reg. number…">
+  </div>
+  <div class="card">
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Reg. Number</th><th>Name</th><th>Faculty</th><th>Department</th><th>Email</th><th></th></tr></thead>
+        <tbody id="patientsTbody"><tr><td colspan="6"><div class="skeleton skeleton-text"></div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</template>
+
+<script type="module">
+  import { initLayout } from "/components/layout.js";
+  import { listPatients, searchPatients } from "/assets/js/api/patients.js";
+  import { listAppointmentsForPatient } from "/assets/js/api/appointments.js";
+  import { listRecordsForPatient } from "/assets/js/api/medicalRecords.js";
+  import { listPrescriptionsForPatient } from "/assets/js/api/prescriptions.js";
+  import { openModal } from "/components/modal.js";
+  import { showToast } from "/assets/js/toast.js";
+  import { icon } from "/components/icons.js";
+
+  const profile = await initLayout({ role: "admin", active: "patients", title: "Patients" });
+  let debounceTimer;
+
+  if (profile) {
+    await render(await safeList());
+    document.getElementById("searchInput").addEventListener("input", (e) => {
+      clearTimeout(debounceTimer);
+      const q = e.target.value;
+      debounceTimer = setTimeout(async () => render(await safeSearch(q)), 300);
+    });
+  }
+
+  async function safeList() {
+    try { return await listPatients(); } catch (err) { showToast(err.message, "error"); return []; }
+  }
+  async function safeSearch(q) {
+    try { return await searchPatients(q); } catch (err) { showToast(err.message, "error"); return []; }
+  }
+
+  function render(patients) {
+    const tbody = document.getElementById("patientsTbody");
+    if (!patients.length) {
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">${icon("patients",40)}<p>No patients found.</p></div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = patients.map(p => `
+      <tr>
+        <td>${p.reg_number}</td>
+        <td>${p.profiles?.full_name || "—"}</td>
+        <td>${p.faculty || "—"}</td>
+        <td>${p.department || "—"}</td>
+        <td>${p.profiles?.email || "—"}</td>
+        <td><button class="btn btn-secondary btn-sm view-btn" data-id="${p.id}">View</button></td>
+      </tr>
+    `).join("");
+    tbody.querySelectorAll(".view-btn").forEach(btn => btn.addEventListener("click", () => openPatientDetail(btn.dataset.id)));
+  }
+
+  async function openPatientDetail(patientId) {
+    const overlay = openModal(`<h3>Patient history</h3><div id="detailBody" style="margin-top: var(--space-4);"><div class="skeleton skeleton-text"></div><div class="skeleton skeleton-text"></div></div>`);
+    try {
+      const [appts, records, rx] = await Promise.all([
+        listAppointmentsForPatient(patientId),
+        listRecordsForPatient(patientId),
+        listPrescriptionsForPatient(patientId),
+      ]);
+      document.getElementById("detailBody").innerHTML = `
+        <h4 style="margin-bottom: var(--space-2);">Appointments (${appts.length})</h4>
+        ${appts.slice(0,5).map(a => `<div style="font-size: var(--fs-sm); padding: 6px 0; border-bottom:1px solid var(--color-gray-100);">${new Date(a.scheduled_at).toLocaleString()} — Dr. ${a.doctors?.profiles?.full_name || "Unassigned"} <span class="badge badge-info">${a.status}</span></div>`).join("") || "<p class='text-muted'>None yet.</p>"}
+        <h4 style="margin: var(--space-4) 0 var(--space-2);">Medical records (${records.length})</h4>
+        ${records.slice(0,5).map(r => `<div style="font-size: var(--fs-sm); padding: 6px 0; border-bottom:1px solid var(--color-gray-100);">${r.diagnosis || "No diagnosis noted"} — ${new Date(r.created_at).toLocaleDateString()}</div>`).join("") || "<p class='text-muted'>None yet.</p>"}
+        <h4 style="margin: var(--space-4) 0 var(--space-2);">Prescriptions (${rx.length})</h4>
+        ${rx.slice(0,5).map(p => `<div style="font-size: var(--fs-sm); padding: 6px 0; border-bottom:1px solid var(--color-gray-100);">${p.medication} — ${p.dosage} <span class="badge badge-neutral">${p.status}</span></div>`).join("") || "<p class='text-muted'>None yet.</p>"}
+      `;
+    } catch (err) {
+      document.getElementById("detailBody").innerHTML = `<p class="text-muted">Could not load history: ${err.message}</p>`;
+    }
+  }
+</script>
+</body>
+</html>

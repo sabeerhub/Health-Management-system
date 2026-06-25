@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FUD Health HMS — Federal University Dutse Health Centre</title>
+<meta name="description" content="Secure appointment booking, digital medical records, prescription management, and healthcare services in one platform.">
+<link rel="stylesheet" href="/assets/css/variables.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+  body { overflow-x: hidden; }
+
+  /* ---------- Glass nav ---------- */
+  .nav {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: var(--space-4) 0;
+    background: rgba(251,250,252,0.7);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(229,231,235,0.6);
+  }
+  .nav-brand { display: flex; align-items: center; gap: var(--space-3); }
+  .nav-brand .name { font-weight: var(--fw-bold); font-size: var(--fs-sm); letter-spacing: -0.01em; }
+  .nav-brand .sub { font-size: 11px; color: var(--color-gray-500); }
+  .nav-links { display: flex; gap: var(--space-6); align-items: center; }
+  .nav-links a.nav-anchor { color: var(--color-gray-700); font-weight: var(--fw-medium); font-size: var(--fs-sm); }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    position: relative;
+    padding: var(--space-8) 0 var(--space-7);
+    text-align: center;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: "";
+    position: absolute; inset: -20% -10% auto -10%; height: 600px;
+    background: radial-gradient(60% 60% at 50% 0%, rgba(37,99,235,0.16), transparent 70%);
+    z-index: -1;
+  }
+  .hero-eyebrow {
+    display: inline-flex; align-items: center; gap: var(--space-2);
+    background: var(--color-surface); border: 1px solid var(--color-gray-200);
+    padding: var(--space-2) var(--space-4); border-radius: var(--radius-pill);
+    font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--color-primary-dark);
+    margin-bottom: var(--space-5); box-shadow: var(--shadow-xs);
+  }
+  .hero h1 {
+    font-size: clamp(2.25rem, 5vw, 3.5rem);
+    max-width: 760px; margin: 0 auto var(--space-5);
+    background: linear-gradient(180deg, var(--color-gray-900) 0%, var(--color-gray-700) 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero p.lead { font-size: var(--fs-md); color: var(--color-gray-700); max-width: 560px; margin: 0 auto var(--space-6); }
+  .hero-actions { display: flex; gap: var(--space-4); justify-content: center; margin-bottom: var(--space-7); flex-wrap: wrap; }
+  .hero-actions .btn { height: 54px; padding: 0 var(--space-6); font-size: var(--fs-base); }
+
+  .hero-visual {
+    max-width: 880px; margin: 0 auto; border-radius: var(--radius-lg);
+    background: linear-gradient(165deg, var(--color-primary) 0%, #1E40AF 100%);
+    box-shadow: var(--shadow-lg);
+    padding: var(--space-6);
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4);
+    position: relative;
+  }
+  .hero-visual .glass-stat {
+    background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18);
+    border-radius: var(--radius-md); padding: var(--space-4); color: #fff;
+    backdrop-filter: blur(10px);
+  }
+  .hero-visual .glass-stat .v { font-family: var(--font-display); font-size: var(--fs-xl); font-weight: var(--fw-bold); }
+  .hero-visual .glass-stat .l { font-size: var(--fs-xs); opacity: 0.85; margin-top: 4px; }
+
+  /* ---------- Reveal-on-scroll ---------- */
+  .reveal { opacity: 0; transform: translateY(24px); transition: opacity 600ms var(--ease-standard), transform 600ms var(--ease-standard); }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  /* ---------- Sections ---------- */
+  .section { padding: var(--space-8) 0; }
+  .section-head { text-align: center; max-width: 600px; margin: 0 auto var(--space-7); }
+  .section-eyebrow { font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--color-primary); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: var(--space-3); display: block; }
+  .section-head h2 { font-size: clamp(1.75rem, 3vw, 2.25rem); margin-bottom: var(--space-3); }
+  .section-head p { color: var(--color-gray-500); font-size: var(--fs-md); }
+
+  .features-grid, .services-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-5); }
+  .feature-card { transition: transform var(--dur-base) var(--ease-standard); }
+  .feature-card:hover { transform: translateY(-4px); }
+  .feature-card .stat-icon { background: var(--color-primary-light); color: var(--color-primary); }
+  .feature-card h4 { margin: var(--space-4) 0 var(--space-2); }
+  .feature-card p { font-size: var(--fs-sm); }
+
+  .service-card { display: flex; flex-direction: column; gap: var(--space-3); }
+  .service-card .stat-icon { background: var(--color-gray-100); color: var(--color-gray-700); }
+
+  /* ---------- Benefits (alternating split) ---------- */
+  .benefit-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-7); align-items: center; margin-bottom: var(--space-7); }
+  .benefit-row.reverse > *:first-child { order: 2; }
+  .benefit-visual {
+    border-radius: var(--radius-lg); aspect-ratio: 4/3;
+    background: linear-gradient(160deg, var(--color-gray-100), #fff);
+    border: 1px solid var(--color-gray-200);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--shadow-sm);
+  }
+  .benefit-visual .stat-icon { width: 72px; height: 72px; }
+  .benefit-visual .stat-icon i { width: 32px; height: 32px; }
+  .benefit-list { list-style: none; margin-top: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
+  .benefit-list li { display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--fs-sm); color: var(--color-gray-700); }
+  .benefit-list .check-dot { width: 22px; height: 22px; border-radius: 50%; background: var(--color-pharmacist-light); color: #047857; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .benefit-list .check-dot i { width: 13px; height: 13px; }
+
+  /* ---------- Statistics band ---------- */
+  .stats-band {
+    background: linear-gradient(135deg, var(--color-gray-900) 0%, #1E293B 100%);
+    border-radius: var(--radius-lg); padding: var(--space-7) var(--space-6);
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-5); text-align: center;
+  }
+  .stats-band .stat .v { font-family: var(--font-display); font-size: var(--fs-2xl); font-weight: var(--fw-bold); color: #fff; }
+  .stats-band .stat .l { color: rgba(255,255,255,0.6); font-size: var(--fs-sm); margin-top: var(--space-2); }
+
+  /* ---------- CTA ---------- */
+  .cta-band {
+    background: linear-gradient(135deg, var(--color-primary) 0%, #1E3A8A 100%);
+    border-radius: var(--radius-lg); padding: var(--space-7) var(--space-6);
+    text-align: center; color: #fff; position: relative; overflow: hidden;
+  }
+  .cta-band::after { content: ""; position: absolute; width: 320px; height: 320px; border-radius: 50%; background: rgba(255,255,255,0.08); top: -120px; right: -80px; }
+  .cta-band h2 { color: #fff; margin-bottom: var(--space-3); }
+  .cta-band p { color: rgba(255,255,255,0.85); max-width: 480px; margin: 0 auto var(--space-6); }
+  .cta-band .btn-primary { background: #fff; color: var(--color-primary); }
+  .cta-band .btn-primary:hover { background: #F3F4F6; }
+
+  footer { border-top: 1px solid var(--color-gray-200); padding: var(--space-7) 0 var(--space-6); }
+  .footer-top { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: var(--space-6); margin-bottom: var(--space-6); }
+  .footer-links { display: flex; gap: var(--space-6); }
+  .footer-links a { color: var(--color-gray-500); font-size: var(--fs-sm); }
+  .footer-bottom { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-3); color: var(--color-gray-500); font-size: var(--fs-sm); padding-top: var(--space-5); border-top: 1px solid var(--color-gray-100); }
+
+  @media (max-width: 900px) {
+    .nav-links { gap: var(--space-4); }
+    .nav-links .nav-anchor { display: none; }
+    .hero-visual { grid-template-columns: repeat(2, 1fr); }
+    .features-grid, .services-grid { grid-template-columns: 1fr 1fr; }
+    .benefit-row, .benefit-row.reverse > *:first-child { grid-template-columns: 1fr; order: 0; }
+    .benefit-row { grid-template-columns: 1fr; }
+    .stats-band { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 560px) {
+    .hero-visual { grid-template-columns: 1fr 1fr; }
+    .features-grid, .services-grid { grid-template-columns: 1fr; }
+    .stats-band { grid-template-columns: 1fr; }
+    .hero-actions .btn { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <nav class="nav">
+    <div class="nav-brand">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none"><path d="M12 2L4 5v6c0 5 3.5 8.5 8 9 4.5-.5 8-4 8-9V5l-8-3z" fill="#2563EB"/><path d="M9 12h6M12 9v6" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <div>
+        <div class="name">FUD HEALTH HMS</div>
+        <div class="sub">Federal University Dutse Health Centre</div>
+      </div>
+    </div>
+    <div class="nav-links">
+      <a href="#features" class="nav-anchor">Features</a>
+      <a href="#services" class="nav-anchor">Services</a>
+      <a href="#benefits" class="nav-anchor">Benefits</a>
+      <a href="#contact" class="nav-anchor">Contact</a>
+      <a href="/pages/login.html" class="btn btn-secondary btn-sm">Patient Login</a>
+      <a href="/pages/register.html" class="btn btn-primary btn-sm">Create Account</a>
+    </div>
+  </nav>
+</div>
+
+<main>
+  <div class="container">
+    <section class="hero">
+      <span class="hero-eyebrow"><i data-lucide="shield" style="width:14px;height:14px;"></i> Trusted by FUD students &amp; staff</span>
+      <h1>Modern healthcare management for Federal University Dutse</h1>
+      <p class="lead">Secure appointment booking, digital medical records, prescription management, and healthcare services in one platform.</p>
+      <div class="hero-actions">
+        <a href="/pages/login.html" class="btn btn-primary">Patient Login</a>
+        <a href="/pages/register.html" class="btn btn-secondary">Create Account</a>
+      </div>
+
+      <div class="hero-visual reveal">
+        <div class="glass-stat"><div class="v">128</div><div class="l">Doctors on staff</div></div>
+        <div class="glass-stat"><div class="v">1,482</div><div class="l">Registered patients</div></div>
+        <div class="glass-stat"><div class="v">256</div><div class="l">Appointments today</div></div>
+        <div class="glass-stat"><div class="v">99.9%</div><div class="l">Uptime</div></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="container">
+    <section class="section" id="features">
+      <div class="section-head reveal">
+        <span class="section-eyebrow">Platform</span>
+        <h2>Everything the clinic needs, in one place</h2>
+        <p>Built to remove the exact friction points of the old paper-based process.</p>
+      </div>
+      <div class="features-grid">
+        <div class="card feature-card reveal">
+          <div class="stat-icon"><i data-lucide="clipboard" style="width:22px;height:22px;"></i></div>
+          <h4>Centralized records</h4>
+          <p>Every patient file lives in one secure, searchable system — no more lost paper folders.</p>
+        </div>
+        <div class="card feature-card reveal">
+          <div class="stat-icon"><i data-lucide="calendar" style="width:22px;height:22px;"></i></div>
+          <h4>Instant booking</h4>
+          <p>Patients request appointments online and track status in real time — no queueing for a slot.</p>
+        </div>
+        <div class="card feature-card reveal">
+          <div class="stat-icon"><i data-lucide="credit-card" style="width:22px;height:22px;"></i></div>
+          <h4>Secure payments</h4>
+          <p>Pay consultation and lab fees online with instant, downloadable receipts.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="services">
+      <div class="section-head reveal">
+        <span class="section-eyebrow">Hospital services</span>
+        <h2>Care, delivered where you are</h2>
+        <p>The same services you'd expect on campus, now bookable from your phone.</p>
+      </div>
+      <div class="services-grid">
+        <div class="card service-card reveal">
+          <div class="stat-icon"><i data-lucide="stethoscope" style="width:22px;height:22px;"></i></div>
+          <h4>General consultation</h4>
+          <p style="font-size: var(--fs-sm); color: var(--color-gray-500);">Routine check-ups and walk-in consultations with licensed doctors.</p>
+        </div>
+        <div class="card service-card reveal">
+          <div class="stat-icon"><i data-lucide="pill" style="width:22px;height:22px;"></i></div>
+          <h4>Pharmacy</h4>
+          <p style="font-size: var(--fs-sm); color: var(--color-gray-500);">Prescriptions sent straight from your doctor to the campus pharmacy.</p>
+        </div>
+        <div class="card service-card reveal">
+          <div class="stat-icon"><i data-lucide="activity" style="width:22px;height:22px;"></i></div>
+          <h4>Diagnostics &amp; labs</h4>
+          <p style="font-size: var(--fs-sm); color: var(--color-gray-500);">Lab tests and results tracked alongside the rest of your medical history.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="benefits">
+      <div class="section-head reveal">
+        <span class="section-eyebrow">Benefits</span>
+        <h2>Why FUD Health HMS</h2>
+      </div>
+
+      <div class="benefit-row reveal">
+        <div class="benefit-visual"><div class="stat-icon"><i data-lucide="clock" style="width:32px;height:32px;"></i></div></div>
+        <div>
+          <h3>Save hours, not just minutes</h3>
+          <p style="color: var(--color-gray-500); margin-top: var(--space-2);">No more walking to the health centre just to join a queue. Book, reschedule, and track everything from your phone.</p>
+          <ul class="benefit-list">
+            <li><span class="check-dot"><i data-lucide="check"></i></span> Real-time appointment status</li>
+            <li><span class="check-dot"><i data-lucide="check"></i></span> Instant prescription visibility</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="benefit-row reverse reveal">
+        <div>
+          <h3>Your records, protected</h3>
+          <p style="color: var(--color-gray-500); margin-top: var(--space-2);">Role-based access control means only the right people ever see your medical history — never the wrong department, never the public internet.</p>
+          <ul class="benefit-list">
+            <li><span class="check-dot"><i data-lucide="check"></i></span> Row-level security on every record</li>
+            <li><span class="check-dot"><i data-lucide="check"></i></span> Staff accounts created and audited by admins only</li>
+          </ul>
+        </div>
+        <div class="benefit-visual"><div class="stat-icon"><i data-lucide="shield-check" style="width:32px;height:32px;"></i></div></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="stats-band reveal">
+        <div class="stat"><div class="v">128</div><div class="l">Doctors</div></div>
+        <div class="stat"><div class="v">1,482</div><div class="l">Patients</div></div>
+        <div class="stat"><div class="v">256</div><div class="l">Appointments / day</div></div>
+        <div class="stat"><div class="v">4.8/5</div><div class="l">Patient satisfaction</div></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="cta-band reveal">
+        <h2>Ready to get started?</h2>
+        <p>Create your patient account in under two minutes and book your first appointment today.</p>
+        <a href="/pages/register.html" class="btn btn-primary">Create Account</a>
+      </div>
+    </section>
+  </div>
+</main>
+
+<div class="container">
+  <footer id="contact">
+    <div class="footer-top">
+      <div class="nav-brand">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M12 2L4 5v6c0 5 3.5 8.5 8 9 4.5-.5 8-4 8-9V5l-8-3z" fill="#2563EB"/></svg>
+        <div>
+          <div class="name">FUD HEALTH HMS</div>
+          <div class="sub">Federal University Dutse Health Centre, Dutse, Jigawa State</div>
+        </div>
+      </div>
+      <div class="footer-links">
+        <a href="#features">Features</a>
+        <a href="#services">Services</a>
+        <a href="#benefits">Benefits</a>
+        <a href="/pages/login.html">Patient Login</a>
+        <a href="/pages/register.html">Create Account</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Federal University Dutse Health Centre</span>
+      <span>Built with Apple-level care</span>
+    </div>
+  </footer>
+</div>
+
+<script>
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add("visible"); });
+  }, { threshold: 0.15 });
+  document.querySelectorAll(".reveal").forEach(el => observer.observe(el));
+</script>
+</body>
+</html>

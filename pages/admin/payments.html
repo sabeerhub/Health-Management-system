@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payments — FUD Health HMS</title>
+<link rel="stylesheet" href="/assets/css/variables.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body data-role="admin">
+
+<div class="app-shell" id="appShellRoot">
+  <div style="padding:32px;"><div class="skeleton skeleton-title" style="width:200px;"></div></div>
+</div>
+
+<template id="pageContent">
+  <h3 style="margin-bottom: var(--space-4);">Transactions</h3>
+  <div class="card">
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Patient</th><th>Reference</th><th>Amount</th><th>Status</th><th>Date</th><th></th></tr></thead>
+        <tbody id="paymentsTbody"><tr><td colspan="6"><div class="skeleton skeleton-text"></div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</template>
+
+<script type="module">
+  import { initLayout } from "/components/layout.js";
+  import { listAllPayments, verifyPaymentStatus } from "/assets/js/api/payments.js";
+  import { openReceipt } from "/assets/js/receipt.js";
+  import { showToast } from "/assets/js/toast.js";
+  import { icon } from "/components/icons.js";
+
+  const profile = await initLayout({ role: "admin", active: "payments", title: "Payments" });
+  let payments = [];
+
+  if (profile) await loadPayments();
+
+  async function loadPayments() {
+    const tbody = document.getElementById("paymentsTbody");
+    try {
+      payments = await listAllPayments();
+      if (!payments.length) {
+        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">${icon("payments",40)}<p>No transactions yet.</p></div></td></tr>`;
+        return;
+      }
+      tbody.innerHTML = payments.map(p => `
+        <tr>
+          <td>${p.patients?.profiles?.full_name || "—"}</td>
+          <td style="font-family: monospace; font-size: var(--fs-xs);">${p.korapay_reference || "—"}</td>
+          <td>₦${Number(p.amount).toLocaleString()}</td>
+          <td><span class="badge ${badgeClass(p.status)}">${p.status}</span></td>
+          <td>${new Date(p.created_at).toLocaleDateString()}</td>
+          <td style="display:flex; gap:6px;">
+            ${p.status === "pending" ? `<button class="btn btn-sm btn-secondary verify-btn" data-ref="${p.korapay_reference}">Verify</button>` : ""}
+            <button class="btn btn-sm btn-ghost receipt-btn" data-id="${p.id}">${icon("download",14)}</button>
+          </td>
+        </tr>
+      `).join("");
+
+      tbody.querySelectorAll(".verify-btn").forEach(b => b.addEventListener("click", () => handleVerify(b.dataset.ref)));
+      tbody.querySelectorAll(".receipt-btn").forEach(b => b.addEventListener("click", () => handleReceipt(b.dataset.id)));
+    } catch (err) {
+      showToast(err.message || "Could not load payments.", "error");
+    }
+  }
+
+  function badgeClass(status) {
+    return { success: "badge-success", pending: "badge-warning", failed: "badge-danger" }[status] || "badge-neutral";
+  }
+
+  async function handleVerify(reference) {
+    try {
+      const result = await verifyPaymentStatus(reference);
+      showToast(`Payment ${result.status}.`, result.status === "success" ? "success" : "error");
+      await loadPayments();
+    } catch (err) {
+      showToast(err.message || "Verification requires the verify-payment Edge Function to be deployed.", "error");
+    }
+  }
+
+  function handleReceipt(id) {
+    const payment = payments.find(p => p.id === id);
+    if (!payment) return;
+    openReceipt(payment, payment.patients?.profiles?.full_name);
+  }
+</script>
+</body>
+</html>

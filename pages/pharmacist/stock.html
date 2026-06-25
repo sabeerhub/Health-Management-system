@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stock — FUD Health HMS</title>
+<link rel="stylesheet" href="/assets/css/variables.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body data-role="pharmacist">
+
+<div class="app-shell" id="appShellRoot">
+  <div style="padding:32px;"><div class="skeleton skeleton-title" style="width:200px;"></div></div>
+</div>
+
+<template id="pageContent">
+  <div class="panel-head">
+    <h3>Pharmacy stock</h3>
+    <button class="btn btn-role" id="addMedBtn">+ Add medicine</button>
+  </div>
+  <div class="card">
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Medicine</th><th>Quantity</th><th>Unit</th><th>Reorder level</th><th>Price</th><th></th></tr></thead>
+        <tbody id="stockTbody"><tr><td colspan="6"><div class="skeleton skeleton-text"></div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</template>
+
+<script type="module">
+  import { initLayout } from "/components/layout.js";
+  import { listStock, addMedicine, updateStock, removeMedicine } from "/assets/js/api/stock.js";
+  import { openModal, closeModal, confirmAction } from "/components/modal.js";
+  import { showToast } from "/assets/js/toast.js";
+  import { icon } from "/components/icons.js";
+
+  const profile = await initLayout({ role: "pharmacist", active: "stock", title: "Stock" });
+  if (profile) {
+    await loadStock();
+    document.getElementById("addMedBtn").addEventListener("click", openAddModal);
+  }
+
+  async function loadStock() {
+    const tbody = document.getElementById("stockTbody");
+    try {
+      const stock = await listStock();
+      if (!stock.length) {
+        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">${icon("stock",40)}<p>No medicines in stock yet.</p></div></td></tr>`;
+        return;
+      }
+      tbody.innerHTML = stock.map(s => {
+        const low = s.quantity <= s.reorder_level;
+        return `
+        <tr>
+          <td>${s.medicine_name}</td>
+          <td>${low ? `<span class="badge badge-danger">${s.quantity}</span>` : s.quantity}</td>
+          <td>${s.unit}</td>
+          <td>${s.reorder_level}</td>
+          <td>₦${Number(s.price).toLocaleString()}</td>
+          <td style="display:flex; gap:6px;">
+            <button class="btn btn-sm btn-secondary edit-btn" data-id="${s.id}">Update</button>
+            <button class="btn btn-sm btn-ghost remove-btn" data-id="${s.id}" data-name="${s.medicine_name}">${icon("trash",14)}</button>
+          </td>
+        </tr>`;
+      }).join("");
+
+      tbody.querySelectorAll(".edit-btn").forEach(b => b.addEventListener("click", () => openEditModal(stock.find(s => s.id === b.dataset.id))));
+      tbody.querySelectorAll(".remove-btn").forEach(b => b.addEventListener("click", () => handleRemove(b.dataset.id, b.dataset.name)));
+    } catch (err) {
+      showToast(err.message || "Could not load stock.", "error");
+    }
+  }
+
+  async function handleRemove(id, name) {
+    const ok = await confirmAction({ title: "Remove medicine?", message: `${name} will be removed from inventory.`, confirmText: "Remove" });
+    if (!ok) return;
+    try { await removeMedicine(id); showToast("Medicine removed.", "success"); await loadStock(); }
+    catch (err) { showToast(err.message, "error"); }
+  }
+
+  function openAddModal() {
+    openModal(`
+      <h3>Add medicine</h3>
+      <form id="addForm" style="margin-top: var(--space-4);">
+        <div class="field"><label>Medicine name</label><input class="input" id="medName" required></div>
+        <div class="grid-2">
+          <div class="field"><label>Quantity</label><input class="input" type="number" min="0" id="medQty" value="0" required></div>
+          <div class="field"><label>Unit</label><input class="input" id="medUnit" placeholder="tablets, bottles…" value="units" required></div>
+        </div>
+        <div class="grid-2">
+          <div class="field"><label>Reorder level</label><input class="input" type="number" min="0" id="medReorder" value="10" required></div>
+          <div class="field"><label>Price (₦)</label><input class="input" type="number" min="0" step="0.01" id="medPrice" value="0" required></div>
+        </div>
+        <div style="display:flex; gap: var(--space-3); justify-content:flex-end; margin-top: var(--space-3);">
+          <button type="button" class="btn btn-secondary" id="cancelAdd">Cancel</button>
+          <button type="submit" class="btn btn-role" id="submitAdd">Add medicine</button>
+        </div>
+      </form>
+    `);
+    document.getElementById("cancelAdd").addEventListener("click", closeModal);
+    document.getElementById("addForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("submitAdd");
+      btn.disabled = true; btn.textContent = "Adding…";
+      try {
+        await addMedicine({
+          medicineName: document.getElementById("medName").value.trim(),
+          quantity: Number(document.getElementById("medQty").value),
+          unit: document.getElementById("medUnit").value.trim(),
+          reorderLevel: Number(document.getElementById("medReorder").value),
+          price: Number(document.getElementById("medPrice").value),
+        });
+        showToast("Medicine added.", "success");
+        closeModal();
+        await loadStock();
+      } catch (err) {
+        showToast(err.message || "Could not add medicine.", "error");
+        btn.disabled = false; btn.textContent = "Add medicine";
+      }
+    });
+  }
+
+  function openEditModal(item) {
+    if (!item) return;
+    openModal(`
+      <h3>Update ${item.medicine_name}</h3>
+      <form id="editForm" style="margin-top: var(--space-4);">
+        <div class="grid-2">
+          <div class="field"><label>Quantity</label><input class="input" type="number" min="0" id="editQty" value="${item.quantity}" required></div>
+          <div class="field"><label>Unit</label><input class="input" id="editUnit" value="${item.unit}" required></div>
+        </div>
+        <div class="grid-2">
+          <div class="field"><label>Reorder level</label><input class="input" type="number" min="0" id="editReorder" value="${item.reorder_level}" required></div>
+          <div class="field"><label>Price (₦)</label><input class="input" type="number" min="0" step="0.01" id="editPrice" value="${item.price}" required></div>
+        </div>
+        <div style="display:flex; gap: var(--space-3); justify-content:flex-end; margin-top: var(--space-3);">
+          <button type="button" class="btn btn-secondary" id="cancelEdit">Cancel</button>
+          <button type="submit" class="btn btn-role" id="submitEdit">Save changes</button>
+        </div>
+      </form>
+    `);
+    document.getElementById("cancelEdit").addEventListener("click", closeModal);
+    document.getElementById("editForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("submitEdit");
+      btn.disabled = true; btn.textContent = "Saving…";
+      try {
+        await updateStock(item.id, {
+          quantity: Number(document.getElementById("editQty").value),
+          unit: document.getElementById("editUnit").value.trim(),
+          reorderLevel: Number(document.getElementById("editReorder").value),
+          price: Number(document.getElementById("editPrice").value),
+        });
+        showToast("Stock updated.", "success");
+        closeModal();
+        await loadStock();
+      } catch (err) {
+        showToast(err.message || "Could not update.", "error");
+        btn.disabled = false; btn.textContent = "Save changes";
+      }
+    });
+  }
+</script>
+</body>
+</html>

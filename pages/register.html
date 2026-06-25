@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Patient Account — FUD Health HMS</title>
+<link rel="stylesheet" href="/assets/css/variables.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+  body { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: var(--space-5); background: radial-gradient(60% 50% at 50% 0%, rgba(37,99,235,0.08), transparent 70%), var(--color-bg); }
+  .auth-card { max-width: 520px; width: 100%; background: var(--color-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); padding: var(--space-7) var(--space-6); animation: cardIn 500ms var(--ease-spring); }
+  @keyframes cardIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .auth-card .brand { display:flex; align-items:center; gap: var(--space-3); margin-bottom: var(--space-6); }
+  .auth-card .brand .sub { font-size: var(--fs-xs); color: var(--color-gray-500); }
+  .auth-card h1 { font-size: var(--fs-xl); margin-bottom: var(--space-2); }
+  .auth-card .subtitle { color: var(--color-gray-500); margin-bottom: var(--space-6); }
+  .auth-switch { text-align: center; margin-top: var(--space-5); font-size: var(--fs-sm); color: var(--color-gray-500); }
+
+  .strength-meter { display: flex; gap: 4px; margin-top: var(--space-2); }
+  .strength-bar { height: 4px; flex: 1; border-radius: var(--radius-pill); background: var(--color-gray-200); transition: background var(--dur-base) var(--ease-standard); }
+  .strength-bar.active.weak { background: var(--color-danger); }
+  .strength-bar.active.fair { background: var(--color-patient); }
+  .strength-bar.active.strong { background: var(--color-pharmacist); }
+  .strength-label { font-size: var(--fs-xs); margin-top: 6px; color: var(--color-gray-500); }
+  .strength-label.weak { color: var(--color-danger); }
+  .strength-label.fair { color: #B45309; }
+  .strength-label.strong { color: #047857; }
+
+  @media (max-width: 480px) { .grid-2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<div class="auth-card">
+  <div class="brand">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M12 2L4 5v6c0 5 3.5 8.5 8 9 4.5-.5 8-4 8-9V5l-8-3z" fill="#2563EB"/></svg>
+    <div>
+      <div style="font-weight:700; font-size: var(--fs-sm);">FUD HEALTH HMS</div>
+      <div class="sub">Federal University Dutse Health Centre</div>
+    </div>
+  </div>
+
+  <h1>Create patient account</h1>
+  <p class="subtitle">Fill in your details to create an account</p>
+
+  <form id="registerForm" novalidate>
+    <div class="field">
+      <label for="regNumber">Student registration number</label>
+      <div class="input-wrap">
+        <i class="icon" data-lucide="hash" style="width:20px;height:20px;"></i>
+        <input class="input has-icon" type="text" id="regNumber" name="regNumber" placeholder="FCP/CIT/24/0001" autocomplete="off" required>
+      </div>
+      <span class="field-hint" id="regNumberHint">Format: FCP/DEPT/YY/XXXX — e.g. FCP/CSC/25/0123</span>
+    </div>
+
+    <div class="field">
+      <label for="fullName">Full name</label>
+      <div class="input-wrap">
+        <i class="icon" data-lucide="user" style="width:20px;height:20px;"></i>
+        <input class="input has-icon" type="text" id="fullName" name="fullName" placeholder="Aisha Sani Bello" autocomplete="name" required>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="field">
+        <label for="faculty">Faculty</label>
+        <select class="input" id="faculty" name="faculty" required>
+          <option value="" disabled selected>Select faculty</option>
+          <option>Faculty of Computing</option>
+          <option>Faculty of Science</option>
+          <option>Faculty of Arts</option>
+          <option>Faculty of Social Sciences</option>
+          <option>Faculty of Agriculture</option>
+          <option>Faculty of Management Sciences</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="department">Department</label>
+        <select class="input" id="department" name="department" required>
+          <option value="" disabled selected>Select department</option>
+          <option>Information Technology</option>
+          <option>Computer Science</option>
+          <option>Cyber Security</option>
+          <option>Software Engineering</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="email">Email address</label>
+      <div class="input-wrap">
+        <i class="icon" data-lucide="mail" style="width:20px;height:20px;"></i>
+        <input class="input has-icon" type="email" id="email" name="email" placeholder="student@example.com" autocomplete="email" required>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="password">Password</label>
+      <div class="input-wrap">
+        <i class="icon" data-lucide="lock" style="width:20px;height:20px;"></i>
+        <input class="input has-icon has-trailing" type="password" id="password" name="password" placeholder="At least 8 characters" autocomplete="new-password" required>
+        <button type="button" class="icon-trailing" id="togglePassword" aria-label="Show password">
+          <i data-lucide="eye" style="width:20px;height:20px;"></i>
+        </button>
+      </div>
+      <div class="strength-meter">
+        <div class="strength-bar" data-bar="1"></div>
+        <div class="strength-bar" data-bar="2"></div>
+        <div class="strength-bar" data-bar="3"></div>
+      </div>
+      <div class="strength-label" id="strengthLabel"></div>
+    </div>
+
+    <div class="field">
+      <label for="confirmPassword">Confirm password</label>
+      <div class="input-wrap">
+        <i class="icon" data-lucide="lock" style="width:20px;height:20px;"></i>
+        <input class="input has-icon" type="password" id="confirmPassword" name="confirmPassword" placeholder="Re-enter password" autocomplete="new-password" required>
+      </div>
+      <span class="field-hint" id="confirmHint"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-block" id="registerBtn" style="margin-top: var(--space-2);">Create account</button>
+  </form>
+
+  <p class="auth-switch">Already have an account? <a href="/pages/login.html">Sign in</a></p>
+</div>
+
+<script type="module">
+  import { registerPatient } from "/assets/js/auth.js";
+  import { showToast } from "/assets/js/toast.js";
+  import { isValidRegNumber, isValidEmail, isStrongPassword, passwordsMatch, bindFieldValidation } from "/assets/js/validators.js";
+
+  const regInput = document.getElementById("regNumber");
+  const regHint = document.getElementById("regNumberHint");
+  const confirmInput = document.getElementById("confirmPassword");
+  const confirmHint = document.getElementById("confirmHint");
+  const pwInput = document.getElementById("password");
+  const toggle = document.getElementById("togglePassword");
+
+  toggle.addEventListener("click", () => {
+    pwInput.type = pwInput.type === "password" ? "text" : "password";
+  });
+
+  bindFieldValidation(regInput, regHint, isValidRegNumber,
+    "Format must be FCP/DEPT/YY/XXXX — e.g. FCP/CIT/24/0001");
+
+  // ---- Live password strength meter ----
+  function scorePassword(value) {
+    if (!value) return 0;
+    let score = 0;
+    if (value.length >= 8) score++;
+    if (value.length >= 12 && /[A-Z]/.test(value) && /[a-z]/.test(value)) score++;
+    if (/\d/.test(value) && /[^A-Za-z0-9]/.test(value)) score++;
+    return Math.min(score, 3);
+  }
+  function tierFor(score) { return score <= 1 ? "weak" : score === 2 ? "fair" : "strong"; }
+
+  pwInput.addEventListener("input", () => {
+    const score = scorePassword(pwInput.value);
+    const tier = tierFor(score);
+    document.querySelectorAll(".strength-bar").forEach((bar, i) => {
+      const active = i < score;
+      bar.classList.toggle("active", active);
+      bar.classList.remove("weak", "fair", "strong");
+      if (active) bar.classList.add(tier);
+    });
+    const label = document.getElementById("strengthLabel");
+    label.classList.remove("weak", "fair", "strong");
+    if (!pwInput.value) { label.textContent = ""; return; }
+    label.classList.add(tier);
+    label.textContent = tier === "weak" ? "Weak — add length, numbers, and symbols" : tier === "fair" ? "Fair — getting stronger" : "Strong password";
+    checkConfirm();
+  });
+
+  function checkConfirm() {
+    if (confirmInput.value.length === 0) { confirmHint.textContent = ""; confirmInput.classList.remove("is-valid","is-invalid"); return false; }
+    const match = passwordsMatch(pwInput.value, confirmInput.value);
+    confirmInput.classList.toggle("is-valid", match);
+    confirmInput.classList.toggle("is-invalid", !match);
+    confirmHint.textContent = match ? "" : "Passwords do not match";
+    confirmHint.classList.toggle("error", !match);
+    return match;
+  }
+  confirmInput.addEventListener("input", checkConfirm);
+
+  document.getElementById("registerForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const fullName = document.getElementById("fullName").value.trim();
+    const faculty = document.getElementById("faculty").value;
+    const department = document.getElementById("department").value;
+    const email = document.getElementById("email").value.trim();
+    const regNumber = regInput.value.trim().toUpperCase();
+    const password = pwInput.value;
+
+    if (!isValidRegNumber(regNumber)) { showToast("Enter a valid registration number.", "error"); return; }
+    if (!fullName) { showToast("Enter your full name.", "error"); return; }
+    if (!faculty || !department) { showToast("Select your faculty and department.", "error"); return; }
+    if (!isValidEmail(email)) { showToast("Enter a valid email address.", "error"); return; }
+    if (!isStrongPassword(password)) { showToast("Password must be 8+ characters with a letter and a number.", "error"); return; }
+    if (!passwordsMatch(password, confirmInput.value)) { showToast("Passwords do not match.", "error"); return; }
+
+    const btn = document.getElementById("registerBtn");
+    btn.disabled = true;
+    btn.textContent = "Creating account…";
+    try {
+      await registerPatient({ email, password, fullName, regNumber, faculty, department });
+      showToast("Account created! Check your email to confirm, then sign in.", "success", 6000);
+      setTimeout(() => { window.location.href = "/pages/login.html"; }, 1500);
+    } catch (err) {
+      showToast(err.message || "Could not create account.", "error");
+      btn.disabled = false;
+      btn.textContent = "Create account";
+    }
+  });
+</script>
+</body>
+</html>

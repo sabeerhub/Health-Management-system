@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pharmacists — FUD Health HMS</title>
+<link rel="stylesheet" href="/assets/css/variables.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body data-role="admin">
+
+<div class="app-shell" id="appShellRoot">
+  <div style="padding:32px;"><div class="skeleton skeleton-title" style="width:200px;"></div></div>
+</div>
+
+<template id="pageContent">
+  <div class="panel-head">
+    <h3>Pharmacists</h3>
+    <button class="btn btn-role" id="addPharmBtn">+ Add Pharmacist</button>
+  </div>
+  <div class="card">
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Name</th><th>Email</th><th>License No.</th><th>Joined</th><th></th></tr></thead>
+        <tbody id="pharmTbody"><tr><td colspan="5"><div class="skeleton skeleton-text"></div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</template>
+
+<script type="module">
+  import { initLayout } from "/components/layout.js";
+  import { listPharmacists, createStaff, deleteStaff } from "/assets/js/api/staff.js";
+  import { openModal, closeModal, confirmAction } from "/components/modal.js";
+  import { showToast } from "/assets/js/toast.js";
+  import { icon } from "/components/icons.js";
+
+  const profile = await initLayout({ role: "admin", active: "staff", title: "Pharmacists" });
+  if (profile) {
+    await loadPharmacists();
+    document.getElementById("addPharmBtn").addEventListener("click", openAddModal);
+  }
+
+  async function loadPharmacists() {
+    const tbody = document.getElementById("pharmTbody");
+    try {
+      const pharmacists = await listPharmacists();
+      if (!pharmacists.length) {
+        tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">${icon("pill",40)}<p>No pharmacists yet.</p></div></td></tr>`;
+        return;
+      }
+      tbody.innerHTML = pharmacists.map(p => `
+        <tr>
+          <td>${p.profiles?.full_name || "—"}</td>
+          <td>${p.profiles?.email || "—"}</td>
+          <td>${p.license_number || "—"}</td>
+          <td>${new Date(p.created_at).toLocaleDateString()}</td>
+          <td><button class="btn btn-ghost btn-sm delete-btn" data-id="${p.id}" data-name="${p.profiles?.full_name || ""}">${icon("trash",16)}</button></td>
+        </tr>
+      `).join("");
+      tbody.querySelectorAll(".delete-btn").forEach(btn => btn.addEventListener("click", () => handleDelete(btn.dataset.id, btn.dataset.name)));
+    } catch (err) {
+      showToast(err.message || "Could not load pharmacists.", "error");
+    }
+  }
+
+  async function handleDelete(id, name) {
+    const ok = await confirmAction({ title: "Delete pharmacist account?", message: `This permanently removes ${name || "this pharmacist"}'s login.`, confirmText: "Delete" });
+    if (!ok) return;
+    try {
+      await deleteStaff(id);
+      showToast("Pharmacist account deleted.", "success");
+      await loadPharmacists();
+    } catch (err) {
+      showToast(err.message || "Could not delete.", "error");
+    }
+  }
+
+  function openAddModal() {
+    openModal(`
+      <h3>Add pharmacist</h3>
+      <form id="addPharmForm" style="margin-top: var(--space-4);">
+        <div class="field"><label>Full name</label><input class="input" id="newName" required></div>
+        <div class="field"><label>Email</label><input class="input" type="email" id="newEmail" required></div>
+        <div class="field"><label>License No.</label><input class="input" id="newLicense"></div>
+        <div class="field"><label>Temporary password</label><input class="input" type="password" id="newPassword" minlength="8" required></div>
+        <div style="display:flex; gap: var(--space-3); justify-content:flex-end; margin-top: var(--space-3);">
+          <button type="button" class="btn btn-secondary" id="cancelAdd">Cancel</button>
+          <button type="submit" class="btn btn-role" id="submitAdd">Add pharmacist</button>
+        </div>
+      </form>
+    `);
+    document.getElementById("cancelAdd").addEventListener("click", closeModal);
+    document.getElementById("addPharmForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("submitAdd");
+      btn.disabled = true; btn.textContent = "Adding…";
+      try {
+        await createStaff({
+          email: document.getElementById("newEmail").value.trim(),
+          password: document.getElementById("newPassword").value,
+          fullName: document.getElementById("newName").value.trim(),
+          role: "pharmacist",
+          licenseNumber: document.getElementById("newLicense").value.trim(),
+        });
+        showToast("Pharmacist account created. Share this sign-in link: " + window.location.origin + "/pages/pharmacist/login.html", "success", 9000);
+        closeModal();
+        await loadPharmacists();
+      } catch (err) {
+        showToast(err.message || "Could not create account.", "error");
+        btn.disabled = false; btn.textContent = "Add pharmacist";
+      }
+    });
+  }
+</script>
+</body>
+</html>

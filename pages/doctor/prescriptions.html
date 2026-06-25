@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prescriptions — FUD Health HMS</title>
+<link rel="stylesheet" href="/assets/css/variables.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body data-role="doctor">
+
+<div class="app-shell" id="appShellRoot">
+  <div style="padding:32px;"><div class="skeleton skeleton-title" style="width:200px;"></div></div>
+</div>
+
+<template id="pageContent">
+  <div class="grid-2" style="align-items:start;">
+    <div class="card">
+      <h3 style="margin-bottom: var(--space-4);">New prescription</h3>
+      <form id="rxForm">
+        <div class="field">
+          <label>Patient</label>
+          <select class="input" id="patientSelect" required><option value="" disabled selected>Loading patients…</option></select>
+        </div>
+        <div class="field"><label>Medication</label><input class="input" id="medication" placeholder="e.g. Amoxicillin 500mg" required></div>
+        <div class="grid-2">
+          <div class="field"><label>Dosage</label><input class="input" id="dosage" placeholder="e.g. 1 tablet, 3x daily" required></div>
+          <div class="field"><label>Duration</label><input class="input" id="duration" placeholder="e.g. 5 days" required></div>
+        </div>
+        <div class="field"><label>Notes</label><textarea class="input" id="rxNotes" placeholder="Optional notes for the pharmacist…"></textarea></div>
+        <button type="submit" class="btn btn-role btn-block" id="sendRxBtn">Send to pharmacy</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom: var(--space-4);">Prescriptions you've issued</h3>
+      <div id="rxList"><div class="skeleton skeleton-text"></div><div class="skeleton skeleton-text"></div></div>
+    </div>
+  </div>
+</template>
+
+<script type="module">
+  import { initLayout } from "/components/layout.js";
+  import { listPatients } from "/assets/js/api/patients.js";
+  import { createPrescription, listPrescriptionsForDoctor } from "/assets/js/api/prescriptions.js";
+  import { showToast } from "/assets/js/toast.js";
+  import { icon } from "/components/icons.js";
+
+  const profile = await initLayout({ role: "doctor", active: "prescriptions", title: "Prescriptions" });
+  if (profile) {
+    await populatePatients();
+    await loadIssued();
+
+    document.getElementById("rxForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("sendRxBtn");
+      btn.disabled = true; btn.textContent = "Sending…";
+      try {
+        await createPrescription({
+          patientId: document.getElementById("patientSelect").value,
+          doctorId: profile.id,
+          medication: document.getElementById("medication").value.trim(),
+          dosage: document.getElementById("dosage").value.trim(),
+          duration: document.getElementById("duration").value.trim(),
+          notes: document.getElementById("rxNotes").value.trim(),
+        });
+        showToast("Prescription sent to pharmacy.", "success");
+        document.getElementById("rxForm").reset();
+        await loadIssued();
+      } catch (err) {
+        showToast(err.message || "Could not send prescription.", "error");
+      } finally {
+        btn.disabled = false; btn.textContent = "Send to pharmacy";
+      }
+    });
+  }
+
+  async function populatePatients() {
+    try {
+      const patients = await listPatients();
+      const select = document.getElementById("patientSelect");
+      select.innerHTML = `<option value="" disabled selected>Select a patient</option>` +
+        patients.map(p => `<option value="${p.id}">${p.profiles?.full_name || p.reg_number} (${p.reg_number})</option>`).join("");
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  }
+
+  async function loadIssued() {
+    const list = document.getElementById("rxList");
+    try {
+      const rx = await listPrescriptionsForDoctor(profile.id);
+      if (!rx.length) {
+        list.innerHTML = `<div class="empty-state">${icon("prescription",40)}<p>No prescriptions issued yet.</p></div>`;
+        return;
+      }
+      list.innerHTML = rx.map(r => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-gray-100);">
+          <div>
+            <div style="font-weight:600; font-size: var(--fs-sm);">${r.medication}</div>
+            <div class="text-muted" style="font-size: var(--fs-xs);">${r.patients?.profiles?.full_name || "—"} · ${r.dosage} · ${r.duration}</div>
+          </div>
+          <span class="badge ${r.status === "dispensed" ? "badge-success" : r.status === "cancelled" ? "badge-danger" : "badge-warning"}">${r.status}</span>
+        </div>
+      `).join("");
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  }
+</script>
+</body>
+</html>

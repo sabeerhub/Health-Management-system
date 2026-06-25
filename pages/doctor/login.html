@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Doctor Sign In — FUD Health HMS</title>
+<link rel="stylesheet" href="/assets/css/variables.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+  html, body { height: 100%; }
+  body { display: grid; grid-template-columns: 1.05fr 1fr; }
+
+  .auth-visual {
+    background: linear-gradient(165deg, #2563EB 0%, #1E3A8A 100%);
+    color: #fff; padding: var(--space-7) var(--space-7);
+    display: flex; flex-direction: column; justify-content: space-between;
+    position: relative; overflow: hidden;
+  }
+  .auth-visual::before { content:""; position:absolute; width:420px; height:420px; border-radius:50%; background:rgba(255,255,255,0.07); top:-160px; right:-140px; }
+  .auth-visual .brand-row { display: flex; align-items: center; gap: var(--space-3); position: relative; z-index: 1; }
+  .auth-visual .brand-row .label { font-size: var(--fs-sm); opacity: 0.85; }
+  .auth-visual h2 { color: #fff; font-size: clamp(1.6rem, 3vw, 2.25rem); margin-top: var(--space-6); max-width: 380px; position: relative; z-index: 1; }
+  .auth-visual p.tag { color: rgba(255,255,255,0.85); margin-top: var(--space-3); max-width: 360px; position: relative; z-index: 1; }
+  .staff-badge {
+    display: inline-flex; align-items: center; gap: var(--space-2);
+    background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.2);
+    padding: var(--space-2) var(--space-4); border-radius: var(--radius-pill);
+    font-size: var(--fs-xs); font-weight: var(--fw-semibold); position: relative; z-index: 1; width: fit-content;
+  }
+
+  .auth-form-wrap {
+    display: flex; flex-direction: column; justify-content: center;
+    padding: var(--space-7) var(--space-7); max-width: 440px; width: 100%; margin: 0 auto;
+  }
+  .auth-form-wrap h1 { font-size: var(--fs-xl); margin-bottom: var(--space-2); }
+  .auth-form-wrap .subtitle { color: var(--color-gray-500); margin-bottom: var(--space-6); }
+  .row-between { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-5); }
+  .forgot-link { font-size: var(--fs-sm); font-weight: var(--fw-medium); }
+  .auth-switch { text-align: center; margin-top: var(--space-5); font-size: var(--fs-sm); color: var(--color-gray-500); }
+  .auth-card-enter { animation: cardIn 500ms var(--ease-spring); }
+  @keyframes cardIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+  @media (max-width: 900px) {
+    body { grid-template-columns: 1fr; }
+    .auth-visual { display: none; }
+    .auth-form-wrap { padding: var(--space-6) var(--space-5); }
+  }
+</style>
+</head>
+<body>
+
+<div class="auth-visual">
+  <div>
+    <span class="staff-badge"><i data-lucide="stethoscope" style="width:14px;height:14px;"></i> Staff Portal</span>
+    <h2>Your patients and schedule, organized.</h2>
+    <p class="tag">Review appointments, update records, and send prescriptions to pharmacy.</p>
+  </div>
+  <div></div>
+</div>
+
+<div class="auth-form-wrap auth-card-enter">
+  <h1>Doctor sign in</h1>
+  <p class="subtitle">Restricted access — FUD Health Centre staff only</p>
+
+  <form id="loginForm" novalidate>
+    <div class="field">
+      <label for="email">Email address</label>
+      <div class="input-wrap">
+        <i class="icon" data-lucide="mail" style="width:20px;height:20px;"></i>
+        <input class="input has-icon" type="email" id="email" name="email" placeholder="you@fud.edu.ng" autocomplete="email" required>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="password">Password</label>
+      <div class="input-wrap">
+        <i class="icon" data-lucide="lock" style="width:20px;height:20px;"></i>
+        <input class="input has-icon has-trailing" type="password" id="password" name="password" placeholder="••••••••" autocomplete="current-password" required>
+        <button type="button" class="icon-trailing" id="togglePassword" aria-label="Show password">
+          <i data-lucide="eye" style="width:20px;height:20px;"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="row-between">
+      <label class="checkbox-row"><input type="checkbox" id="remember"> Remember me</label>
+      <a href="#" class="forgot-link" id="forgotLink">Forgot password?</a>
+    </div>
+
+    <button type="submit" class="btn btn-block" id="loginBtn" style="background:#2563EB; color:#fff;">Sign In</button>
+  </form>
+
+  <p class="auth-switch">Looking for the patient portal? <a href="/pages/login.html">Sign in here</a></p>
+</div>
+
+<script type="module">
+  import { loginAsRole, redirectToRoleHome, getCurrentProfile } from "/assets/js/auth.js";
+  import { showToast } from "/assets/js/toast.js";
+
+  const existing = await getCurrentProfile();
+  if (existing && existing.role === "doctor") redirectToRoleHome(existing.role);
+
+  const form = document.getElementById("loginForm");
+  const btn = document.getElementById("loginBtn");
+  const toggle = document.getElementById("togglePassword");
+  const pw = document.getElementById("password");
+
+  toggle.addEventListener("click", () => { pw.type = pw.type === "password" ? "text" : "password"; });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    btn.disabled = true;
+    btn.textContent = "Signing in…";
+    try {
+      const email = document.getElementById("email").value.trim();
+      const password = pw.value;
+      const { profile } = await loginAsRole({ email, password, expectedRole: "doctor" });
+      showToast(`Welcome back, ${profile.full_name}`, "success");
+      setTimeout(() => redirectToRoleHome(profile.role), 600);
+    } catch (err) {
+      showToast(err.message || "Could not sign in. Check your details.", "error");
+      btn.disabled = false;
+      btn.textContent = "Sign In";
+    }
+  });
+  import { wireForgotPassword } from "/components/forgotPassword.js";
+  wireForgotPassword("forgotLink");
+</script>
+</body>
+</html>

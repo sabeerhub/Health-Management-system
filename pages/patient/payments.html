@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payments — FUD Health HMS</title>
+<link rel="stylesheet" href="/assets/css/variables.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body data-role="patient">
+
+<div class="app-shell" id="appShellRoot">
+  <div style="padding:32px;"><div class="skeleton skeleton-title" style="width:200px;"></div></div>
+</div>
+
+<template id="pageContent">
+  <div class="grid-2" style="align-items:start;">
+    <div class="card">
+      <h3 style="margin-bottom: var(--space-4);">Make a payment</h3>
+      <form id="payForm">
+        <div class="field">
+          <label>Payment for</label>
+          <select class="input" id="payReason">
+            <option value="Consultation Fee" data-amount="2500">Consultation Fee — ₦2,500</option>
+            <option value="Lab Test Fee" data-amount="4000">Lab Test Fee — ₦4,000</option>
+            <option value="Pharmacy Fee" data-amount="1500">Pharmacy Fee — ₦1,500</option>
+            <option value="Custom">Custom amount</option>
+          </select>
+        </div>
+        <div class="field"><label>Amount (₦)</label><input class="input" type="number" min="100" id="amountInput" value="2500" required></div>
+        <button type="submit" class="btn btn-role btn-block" id="payBtn">
+          <i data-lucide="credit-card" style="width:18px;height:18px;"></i>
+          Pay with Korapay
+        </button>
+        <p class="field-hint" style="margin-top: var(--space-3);">Test mode — use Korapay's test card numbers. Your real card is never charged.</p>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom: var(--space-4);">Payment history</h3>
+      <div id="paymentsList"><div class="skeleton skeleton-text"></div><div class="skeleton skeleton-text"></div></div>
+    </div>
+  </div>
+</template>
+
+<script type="module">
+  import { initLayout } from "/components/layout.js";
+  import { createPendingPayment, listPaymentsForPatient, refreshPayment } from "/assets/js/api/payments.js";
+  import { openKorapayCheckout, generatePaymentReference } from "/assets/js/korapay.js";
+  import { openReceipt } from "/assets/js/receipt.js";
+  import { showToast } from "/assets/js/toast.js";
+  import { icon } from "/components/icons.js";
+
+  const profile = await initLayout({ role: "patient", active: "payments", title: "Payments" });
+  let payments = [];
+
+  if (profile) {
+    await loadPayments();
+
+    document.getElementById("payReason").addEventListener("change", (e) => {
+      const opt = e.target.selectedOptions[0];
+      const amt = opt.dataset.amount;
+      if (amt) document.getElementById("amountInput").value = amt;
+    });
+
+    document.getElementById("payForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("payBtn");
+      btn.disabled = true;
+      const amount = Number(document.getElementById("amountInput").value);
+      const reference = generatePaymentReference();
+
+      try {
+        await createPendingPayment({ patientId: profile.id, amount, reference });
+
+        await openKorapayCheckout({
+          amount,
+          reference,
+          customer: { name: profile.full_name, email: profile.email },
+          onSuccess: async () => {
+            showToast("Payment submitted — verifying…", "info");
+            setTimeout(async () => {
+              try {
+                const updated = await refreshPayment(reference);
+                showToast(updated.status === "success" ? "Payment confirmed!" : "Payment received, awaiting confirmation.", "success");
+              } catch { /* webhook may still be processing */ }
+              await loadPayments();
+            }, 2500);
+          },
+          onFailed: () => showToast("Payment failed. Please try again.", "error"),
+          onClose: () => { btn.disabled = false; },
+        });
+      } catch (err) {
+        showToast(err.message || "Could not start payment. Check your Korapay key in config.js.", "error");
+        btn.disabled = false;
+      }
+    });
+  }
+
+  async function loadPayments() {
+    const list = document.getElementById("paymentsList");
+    try {
+      payments = await listPaymentsForPatient(profile.id);
+      if (!payments.length) {
+        list.innerHTML = `<div class="empty-state">${icon("payments",40)}<p>No payments yet.</p></div>`;
+        return;
+      }
+      list.innerHTML = payments.map(p => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-gray-100);">
+          <div>
+            <div style="font-weight:600; font-size: var(--fs-sm);">₦${Number(p.amount).toLocaleString()}</div>
+            <div class="text-muted" style="font-size: var(--fs-xs);">${new Date(p.created_at).toLocaleDateString()} · ${p.korapay_reference || ""}</div>
+          </div>
+          <div style="display:flex; align-items:center; gap: var(--space-2);">
+            <span class="badge ${p.status === "success" ? "badge-success" : p.status === "pending" ? "badge-warning" : "badge-danger"}">${p.status}</span>
+            ${p.status === "success" ? `<button class="btn btn-sm btn-ghost receipt-btn" data-id="${p.id}">${icon("download",14)}</button>` : ""}
+          </div>
+        </div>
+      `).join("");
+      list.querySelectorAll(".receipt-btn").forEach(b => b.addEventListener("click", () => {
+        const payment = payments.find(p => p.id === b.dataset.id);
+        if (payment) openReceipt(payment, profile.full_name);
+      }));
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  }
+</script>
+</body>
+</html>

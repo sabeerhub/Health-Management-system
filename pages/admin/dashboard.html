@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard — FUD Health HMS</title>
+<link rel="stylesheet" href="/assets/css/variables.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body data-role="admin">
+
+<div class="app-shell" id="appShellRoot">
+  <div style="padding:32px;"><div class="skeleton skeleton-title" style="width:220px;"></div><div class="skeleton skeleton-text" style="width:320px;"></div></div>
+</div>
+
+<template id="pageContent">
+  <div class="stats-grid" id="statsGrid">
+    <div class="card stat-card"><div class="skeleton skeleton-card"></div></div>
+    <div class="card stat-card"><div class="skeleton skeleton-card"></div></div>
+    <div class="card stat-card"><div class="skeleton skeleton-card"></div></div>
+    <div class="card stat-card"><div class="skeleton skeleton-card"></div></div>
+    <div class="card stat-card"><div class="skeleton skeleton-card"></div></div>
+  </div>
+
+  <div class="card">
+    <div class="panel-head"><h3>Recent activity</h3></div>
+    <div id="activityList">
+      <div class="skeleton skeleton-text"></div>
+      <div class="skeleton skeleton-text"></div>
+      <div class="skeleton skeleton-text"></div>
+    </div>
+  </div>
+</template>
+
+<script type="module">
+  import { initLayout } from "/components/layout.js";
+  import { getAdminStats, getRecentActivity } from "/assets/js/api/stats.js";
+  import { icon } from "/components/icons.js";
+  import { showToast } from "/assets/js/toast.js";
+
+  const profile = await initLayout({ role: "admin", active: "dashboard", title: "Dashboard" });
+  if (profile) {
+    try {
+      const stats = await getAdminStats();
+      document.getElementById("statsGrid").innerHTML = `
+        ${statCard("staff", "Total Doctors", stats.totalDoctors)}
+        ${statCard("pill", "Total Pharmacists", stats.totalPharmacists)}
+        ${statCard("patients", "Total Patients", stats.totalPatients)}
+        ${statCard("appointments", "Total Appointments", stats.totalAppointments)}
+        ${statCard("payments", "Total Revenue", "₦" + stats.totalRevenue.toLocaleString())}
+      `;
+    } catch (err) {
+      showToast(err.message || "Could not load stats.", "error");
+    }
+
+    try {
+      const activity = await getRecentActivity(8);
+      const list = document.getElementById("activityList");
+      if (!activity.length) {
+        list.innerHTML = `<div class="empty-state">${icon("appointments", 48)}<p>No activity yet.</p></div>`;
+      } else {
+        list.innerHTML = activity.map(a => `
+          <div style="display:flex; justify-content:space-between; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-gray-100);">
+            <span>${a.patients?.profiles?.full_name || "Unknown patient"} — appointment ${a.status}</span>
+            <span class="text-muted" style="font-size: var(--fs-xs);">${new Date(a.created_at).toLocaleString()}</span>
+          </div>
+        `).join("");
+      }
+    } catch (err) {
+      showToast(err.message || "Could not load activity.", "error");
+    }
+  }
+
+  function statCard(iconName, label, value) {
+    return `
+      <div class="card stat-card">
+        <div class="stat-icon">${icon(iconName, 22)}</div>
+        <div class="stat-value">${value}</div>
+        <div class="stat-label">${label}</div>
+      </div>
+    `;
+  }
+</script>
+</body>
+</html>

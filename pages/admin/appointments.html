@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Appointments — FUD Health HMS</title>
+<link rel="stylesheet" href="/assets/css/variables.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+  .filter-row { display:flex; gap: var(--space-2); margin-bottom: var(--space-5); flex-wrap: wrap; }
+  .filter-chip { padding: var(--space-2) var(--space-4); border-radius: var(--radius-pill); background: var(--color-gray-100); font-size: var(--fs-sm); font-weight: 500; border: none; color: var(--color-gray-700); }
+  .filter-chip.active { background: var(--color-role, var(--color-primary)); color: #fff; }
+</style>
+</head>
+<body data-role="admin">
+
+<div class="app-shell" id="appShellRoot">
+  <div style="padding:32px;"><div class="skeleton skeleton-title" style="width:200px;"></div></div>
+</div>
+
+<template id="pageContent">
+  <h3 style="margin-bottom: var(--space-4);">All appointments</h3>
+  <div class="filter-row" id="filterRow">
+    <button class="filter-chip active" data-status="all">All</button>
+    <button class="filter-chip" data-status="pending">Pending</button>
+    <button class="filter-chip" data-status="approved">Approved</button>
+    <button class="filter-chip" data-status="completed">Completed</button>
+    <button class="filter-chip" data-status="cancelled">Cancelled</button>
+  </div>
+  <div class="card">
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Patient</th><th>Doctor</th><th>Date &amp; time</th><th>Reason</th><th>Status</th><th></th></tr></thead>
+        <tbody id="apptTbody"><tr><td colspan="6"><div class="skeleton skeleton-text"></div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</template>
+
+<script type="module">
+  import { initLayout } from "/components/layout.js";
+  import { listAllAppointments, approveAppointment, cancelAppointment } from "/assets/js/api/appointments.js";
+  import { confirmAction } from "/components/modal.js";
+  import { showToast } from "/assets/js/toast.js";
+  import { icon } from "/components/icons.js";
+
+  const profile = await initLayout({ role: "admin", active: "appointments", title: "Appointments" });
+  let allAppointments = [];
+
+  if (profile) {
+    await loadAppointments();
+    document.getElementById("filterRow").addEventListener("click", (e) => {
+      const chip = e.target.closest(".filter-chip");
+      if (!chip) return;
+      document.querySelectorAll(".filter-chip").forEach(c => c.classList.remove("active"));
+      chip.classList.add("active");
+      renderTable(chip.dataset.status);
+    });
+  }
+
+  async function loadAppointments() {
+    try {
+      allAppointments = await listAllAppointments();
+      renderTable("all");
+    } catch (err) {
+      showToast(err.message || "Could not load appointments.", "error");
+    }
+  }
+
+  function renderTable(filter) {
+    const tbody = document.getElementById("apptTbody");
+    const rows = filter === "all" ? allAppointments : allAppointments.filter(a => a.status === filter);
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">${icon("appointments",40)}<p>No appointments here.</p></div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map(a => `
+      <tr>
+        <td>${a.patients?.profiles?.full_name || "—"}</td>
+        <td>${a.doctors?.profiles?.full_name ? "Dr. " + a.doctors.profiles.full_name : "Unassigned"}</td>
+        <td>${new Date(a.scheduled_at).toLocaleString()}</td>
+        <td>${a.reason || "—"}</td>
+        <td><span class="badge ${badgeClass(a.status)}">${a.status}</span></td>
+        <td style="display:flex; gap:6px;">
+          ${a.status === "pending" ? `<button class="btn btn-sm btn-secondary approve-btn" data-id="${a.id}">${icon("check",14)}</button>` : ""}
+          ${a.status !== "cancelled" && a.status !== "completed" ? `<button class="btn btn-sm btn-ghost cancel-btn" data-id="${a.id}">${icon("close",14)}</button>` : ""}
+        </td>
+      </tr>
+    `).join("");
+
+    tbody.querySelectorAll(".approve-btn").forEach(b => b.addEventListener("click", () => handleApprove(b.dataset.id)));
+    tbody.querySelectorAll(".cancel-btn").forEach(b => b.addEventListener("click", () => handleCancel(b.dataset.id)));
+  }
+
+  function badgeClass(status) {
+    return { pending: "badge-warning", approved: "badge-info", completed: "badge-success", cancelled: "badge-danger" }[status] || "badge-neutral";
+  }
+
+  async function handleApprove(id) {
+    try { await approveAppointment(id); showToast("Appointment approved.", "success"); await loadAppointments(); }
+    catch (err) { showToast(err.message, "error"); }
+  }
+  async function handleCancel(id) {
+    const ok = await confirmAction({ title: "Cancel this appointment?", confirmText: "Cancel appointment" });
+    if (!ok) return;
+    try { await cancelAppointment(id); showToast("Appointment cancelled.", "success"); await loadAppointments(); }
+    catch (err) { showToast(err.message, "error"); }
+  }
+</script>
+</body>
+</html>

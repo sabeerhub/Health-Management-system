@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Settings — FUD Health HMS</title>
+<link rel="stylesheet" href="/assets/css/variables.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+  .perm-table th, .perm-table td { text-align: center; }
+  .perm-table td:first-child, .perm-table th:first-child { text-align: left; }
+</style>
+</head>
+<body data-role="admin">
+
+<div class="app-shell" id="appShellRoot">
+  <div style="padding:32px;"><div class="skeleton skeleton-title" style="width:200px;"></div></div>
+</div>
+
+<template id="pageContent">
+  <div class="grid-2" style="align-items:start;">
+    <div class="card">
+      <h3 style="margin-bottom: var(--space-4);">My profile</h3>
+      <form id="profileForm">
+        <div class="field"><label>Full name</label><input class="input" id="fullName" required></div>
+        <div class="field"><label>Email</label><input class="input" id="emailField" disabled></div>
+        <div class="field"><label>Phone</label><input class="input" id="phone" placeholder="08012345678"></div>
+        <button type="submit" class="btn btn-role" id="saveProfileBtn">Save changes</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom: var(--space-2);">Roles &amp; permissions</h3>
+      <p class="text-muted" style="font-size: var(--fs-sm); margin-bottom: var(--space-4);">
+        Reference only — staff roles are assigned exclusively through Add Doctor / Add Pharmacist
+        (service-role Edge Functions), never editable here. This keeps role changes auditable and
+        prevents any account from silently escalating its own privileges.
+      </p>
+      <div class="table-wrap">
+        <table class="data-table perm-table">
+          <thead><tr><th>Capability</th><th>Admin</th><th>Doctor</th><th>Pharmacist</th><th>Patient</th></tr></thead>
+          <tbody>
+            <tr><td>Manage staff accounts</td><td>✅</td><td>—</td><td>—</td><td>—</td></tr>
+            <tr><td>View all patients</td><td>✅</td><td>✅</td><td>✅</td><td>—</td></tr>
+            <tr><td>Approve/cancel appointments</td><td>✅</td><td>Own only</td><td>—</td><td>Own only</td></tr>
+            <tr><td>Write prescriptions</td><td>—</td><td>✅</td><td>—</td><td>—</td></tr>
+            <tr><td>Dispense medication</td><td>—</td><td>—</td><td>✅</td><td>—</td></tr>
+            <tr><td>Manage pharmacy stock</td><td>✅</td><td>View only</td><td>✅</td><td>—</td></tr>
+            <tr><td>Verify payments</td><td>✅</td><td>—</td><td>—</td><td>—</td></tr>
+            <tr><td>Book appointments</td><td>—</td><td>—</td><td>—</td><td>✅</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script type="module">
+  import { initLayout } from "/components/layout.js";
+  import { supabase } from "/assets/js/supabaseClient.js";
+  import { showToast } from "/assets/js/toast.js";
+
+  const profile = await initLayout({ role: "admin", active: "settings", title: "Settings" });
+  if (profile) {
+    document.getElementById("fullName").value = profile.full_name || "";
+    document.getElementById("emailField").value = profile.email || "";
+    document.getElementById("phone").value = profile.phone || "";
+
+    document.getElementById("profileForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("saveProfileBtn");
+      btn.disabled = true; btn.textContent = "Saving…";
+      try {
+        const { error } = await supabase.from("profiles").update({
+          full_name: document.getElementById("fullName").value.trim(),
+          phone: document.getElementById("phone").value.trim(),
+        }).eq("id", profile.id);
+        if (error) throw error;
+        showToast("Profile updated.", "success");
+      } catch (err) {
+        showToast(err.message || "Could not save changes.", "error");
+      } finally {
+        btn.disabled = false; btn.textContent = "Save changes";
+      }
+    });
+  }
+</script>
+</body>
+</html>

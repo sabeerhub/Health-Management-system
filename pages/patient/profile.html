@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Profile — FUD Health HMS</title>
+<link rel="stylesheet" href="/assets/css/variables.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body data-role="patient">
+
+<div class="app-shell" id="appShellRoot">
+  <div style="padding:32px;"><div class="skeleton skeleton-title" style="width:200px;"></div></div>
+</div>
+
+<template id="pageContent">
+  <h3 style="margin-bottom: var(--space-4);">My profile</h3>
+  <div class="card" style="max-width: 560px;">
+    <form id="profileForm">
+      <div class="field"><label>Full name</label><input class="input" id="fullName" required></div>
+      <div class="field"><label>Email</label><input class="input" id="emailField" disabled></div>
+      <div class="grid-2">
+        <div class="field"><label>Registration number</label><input class="input" id="regNumber" disabled></div>
+        <div class="field"><label>Phone</label><input class="input" id="phone" placeholder="08012345678"></div>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label>Faculty</label><input class="input" id="faculty"></div>
+        <div class="field"><label>Department</label><input class="input" id="department"></div>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label>Date of birth</label><input class="input" type="date" id="dob"></div>
+        <div class="field">
+          <label>Gender</label>
+          <select class="input" id="gender">
+            <option value="">Prefer not to say</option>
+            <option value="Female">Female</option>
+            <option value="Male">Male</option>
+          </select>
+        </div>
+      </div>
+      <div class="field"><label>Address</label><textarea class="input" id="address"></textarea></div>
+      <button type="submit" class="btn btn-role" id="saveBtn">Save changes</button>
+    </form>
+  </div>
+</template>
+
+<script type="module">
+  import { initLayout } from "/components/layout.js";
+  import { getPatientProfile, updateMyPatientProfile } from "/assets/js/api/patients.js";
+  import { showToast } from "/assets/js/toast.js";
+
+  const profile = await initLayout({ role: "patient", active: "profile", title: "My Profile" });
+  if (profile) {
+    try {
+      const patient = await getPatientProfile(profile.id);
+      document.getElementById("fullName").value = patient.profiles?.full_name || "";
+      document.getElementById("emailField").value = patient.profiles?.email || "";
+      document.getElementById("regNumber").value = patient.reg_number || "";
+      document.getElementById("phone").value = patient.profiles?.phone || "";
+      document.getElementById("faculty").value = patient.faculty || "";
+      document.getElementById("department").value = patient.department || "";
+      document.getElementById("dob").value = patient.dob || "";
+      document.getElementById("gender").value = patient.gender || "";
+      document.getElementById("address").value = patient.address || "";
+    } catch (err) {
+      showToast(err.message || "Could not load profile.", "error");
+    }
+
+    document.getElementById("profileForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("saveBtn");
+      btn.disabled = true; btn.textContent = "Saving…";
+      try {
+        await updateMyPatientProfile(profile.id, {
+          fullName: document.getElementById("fullName").value.trim(),
+          phone: document.getElementById("phone").value.trim(),
+          faculty: document.getElementById("faculty").value.trim(),
+          department: document.getElementById("department").value.trim(),
+          dob: document.getElementById("dob").value || null,
+          gender: document.getElementById("gender").value,
+          address: document.getElementById("address").value.trim(),
+        });
+        showToast("Profile updated.", "success");
+      } catch (err) {
+        showToast(err.message || "Could not save changes.", "error");
+      } finally {
+        btn.disabled = false; btn.textContent = "Save changes";
+      }
+    });
+  }
+</script>
+</body>
+</html>

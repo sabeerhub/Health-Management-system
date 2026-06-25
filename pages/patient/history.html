@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Medical History — FUD Health HMS</title>
+<link rel="stylesheet" href="/assets/css/variables.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body data-role="patient">
+
+<div class="app-shell" id="appShellRoot">
+  <div style="padding:32px;"><div class="skeleton skeleton-title" style="width:200px;"></div></div>
+</div>
+
+<template id="pageContent">
+  <h3 style="margin-bottom: var(--space-4);">Medical history</h3>
+  <div class="card">
+    <div id="historyList"><div class="skeleton skeleton-text"></div><div class="skeleton skeleton-text"></div><div class="skeleton skeleton-text"></div></div>
+  </div>
+</template>
+
+<script type="module">
+  import { initLayout } from "/components/layout.js";
+  import { listRecordsForPatient } from "/assets/js/api/medicalRecords.js";
+  import { showToast } from "/assets/js/toast.js";
+  import { icon } from "/components/icons.js";
+
+  const profile = await initLayout({ role: "patient", active: "history", title: "Medical History" });
+  if (profile) {
+    const list = document.getElementById("historyList");
+    try {
+      const records = await listRecordsForPatient(profile.id);
+      if (!records.length) {
+        list.innerHTML = `<div class="empty-state">${icon("history",40)}<p>No medical records yet.</p></div>`;
+      } else {
+        list.innerHTML = records.map(r => `
+          <div style="padding: var(--space-4) 0; border-bottom: 1px solid var(--color-gray-100);">
+            <div style="display:flex; justify-content:space-between;">
+              <strong>${r.diagnosis || "General note"}</strong>
+              <span class="text-muted" style="font-size: var(--fs-xs);">${new Date(r.created_at).toLocaleDateString()}</span>
+            </div>
+            <p class="text-muted" style="font-size: var(--fs-sm); margin-top: 4px;">Seen by Dr. ${r.doctors?.profiles?.full_name || "—"} ${r.doctors?.specialty ? "(" + r.doctors.specialty + ")" : ""}</p>
+            ${r.notes ? `<p style="font-size: var(--fs-sm); margin-top: 6px;">${r.notes}</p>` : ""}
+          </div>
+        `).join("");
+      }
+    } catch (err) {
+      showToast(err.message || "Could not load history.", "error");
+    }
+  }
+</script>
+</body>
+</html>

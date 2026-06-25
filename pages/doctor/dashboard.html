@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Doctor Dashboard — FUD Health HMS</title>
+<link rel="stylesheet" href="/assets/css/variables.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body data-role="doctor">
+
+<div class="app-shell" id="appShellRoot">
+  <div style="padding:32px;"><div class="skeleton skeleton-title" style="width:220px;"></div></div>
+</div>
+
+<template id="pageContent">
+  <div class="stats-grid stats-grid-3" id="statsGrid">
+    <div class="card stat-card"><div class="skeleton skeleton-card"></div></div>
+    <div class="card stat-card"><div class="skeleton skeleton-card"></div></div>
+    <div class="card stat-card"><div class="skeleton skeleton-card"></div></div>
+  </div>
+
+  <div class="card">
+    <div class="panel-head"><h3>Today's appointments</h3><a href="/pages/doctor/appointments.html" class="btn btn-secondary btn-sm">View all</a></div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Time</th><th>Patient</th><th>Reason</th><th>Status</th></tr></thead>
+        <tbody id="todayTbody"><tr><td colspan="4"><div class="skeleton skeleton-text"></div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</template>
+
+<script type="module">
+  import { initLayout } from "/components/layout.js";
+  import { getDoctorStats } from "/assets/js/api/stats.js";
+  import { listAppointmentsForDoctor } from "/assets/js/api/appointments.js";
+  import { icon } from "/components/icons.js";
+  import { showToast } from "/assets/js/toast.js";
+
+  const profile = await initLayout({ role: "doctor", active: "dashboard", title: "Dashboard" });
+  if (profile) {
+    try {
+      const stats = await getDoctorStats(profile.id);
+      document.getElementById("statsGrid").innerHTML = `
+        ${statCard("appointments", "Today's appointments", stats.todayAppointments)}
+        ${statCard("alert", "Pending approvals", stats.pendingAppointments)}
+        ${statCard("patients", "Total patients", stats.totalPatients)}
+      `;
+    } catch (err) { showToast(err.message, "error"); }
+
+    try {
+      const all = await listAppointmentsForDoctor(profile.id);
+      const today = new Date(); today.setHours(0,0,0,0);
+      const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+      const todays = all.filter(a => {
+        const d = new Date(a.scheduled_at);
+        return d >= today && d < tomorrow;
+      });
+      const tbody = document.getElementById("todayTbody");
+      tbody.innerHTML = todays.length ? todays.map(a => `
+        <tr>
+          <td>${new Date(a.scheduled_at).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"})}</td>
+          <td>${a.patients?.profiles?.full_name || "—"}</td>
+          <td>${a.reason || "—"}</td>
+          <td><span class="badge ${a.status === "approved" ? "badge-info" : a.status === "completed" ? "badge-success" : "badge-warning"}">${a.status}</span></td>
+        </tr>
+      `).join("") : `<tr><td colspan="4"><div class="empty-state">${icon("appointments",40)}<p>No appointments scheduled for today.</p></div></td></tr>`;
+    } catch (err) { showToast(err.message, "error"); }
+  }
+
+  function statCard(iconName, label, value) {
+    return `<div class="card stat-card"><div class="stat-icon">${icon(iconName,22)}</div><div class="stat-value">${value}</div><div class="stat-label">${label}</div></div>`;
+  }
+</script>
+</body>
+</html>

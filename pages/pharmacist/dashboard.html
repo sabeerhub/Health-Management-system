@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pharmacist Dashboard — FUD Health HMS</title>
+<link rel="stylesheet" href="/assets/css/variables.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body data-role="pharmacist">
+
+<div class="app-shell" id="appShellRoot">
+  <div style="padding:32px;"><div class="skeleton skeleton-title" style="width:220px;"></div></div>
+</div>
+
+<template id="pageContent">
+  <div class="stats-grid stats-grid-3" id="statsGrid">
+    <div class="card stat-card"><div class="skeleton skeleton-card"></div></div>
+    <div class="card stat-card"><div class="skeleton skeleton-card"></div></div>
+    <div class="card stat-card"><div class="skeleton skeleton-card"></div></div>
+  </div>
+
+  <div class="card">
+    <div class="panel-head"><h3>Low stock alerts</h3><a href="/pages/pharmacist/stock.html" class="btn btn-secondary btn-sm">Manage stock</a></div>
+    <div id="lowStockList"><div class="skeleton skeleton-text"></div></div>
+  </div>
+</template>
+
+<script type="module">
+  import { initLayout } from "/components/layout.js";
+  import { getPharmacistStats } from "/assets/js/api/stats.js";
+  import { icon } from "/components/icons.js";
+  import { showToast } from "/assets/js/toast.js";
+
+  const profile = await initLayout({ role: "pharmacist", active: "dashboard", title: "Dashboard" });
+  if (profile) {
+    try {
+      const stats = await getPharmacistStats();
+      document.getElementById("statsGrid").innerHTML = `
+        ${statCard("stock", "Total medicines", stats.totalMedicines)}
+        ${statCard("alert", "Low stock items", stats.lowStockCount)}
+        ${statCard("prescription", "Active prescriptions", stats.activePrescriptions)}
+      `;
+
+      const list = document.getElementById("lowStockList");
+      if (!stats.lowStockItems.length) {
+        list.innerHTML = `<div class="empty-state">${icon("check",40)}<p>All stock levels look healthy.</p></div>`;
+      } else {
+        list.innerHTML = stats.lowStockItems.map(item => `
+          <div style="display:flex; justify-content:space-between; padding: var(--space-3) 0; border-bottom:1px solid var(--color-gray-100);">
+            <span>${icon("alert",16)} ${item.medicine_name || "Item"}</span>
+            <span class="badge badge-danger">${item.quantity} left</span>
+          </div>
+        `).join("");
+      }
+    } catch (err) { showToast(err.message, "error"); }
+  }
+
+  function statCard(iconName, label, value) {
+    return `<div class="card stat-card"><div class="stat-icon">${icon(iconName,22)}</div><div class="stat-value">${value}</div><div class="stat-label">${label}</div></div>`;
+  }
+</script>
+</body>
+</html>
