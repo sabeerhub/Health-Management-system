@@ -27,25 +27,6 @@
   .nav-links { display: flex; gap: var(--space-6); align-items: center; }
   .nav-links a.nav-anchor { color: var(--color-gray-700); font-weight: var(--fw-medium); font-size: var(--fs-sm); }
 
-  .mobile-menu-toggle {
-    display: none; background: none; border: none; width: 40px; height: 40px;
-    align-items: center; justify-content: center; border-radius: var(--radius-sm);
-    color: var(--color-gray-900); flex-shrink: 0;
-  }
-  .mobile-menu-toggle:active { background: var(--color-gray-100); }
-
-  .mobile-menu {
-    max-height: 0; opacity: 0; overflow: hidden;
-    transition: max-height 320ms var(--ease-standard), opacity 220ms var(--ease-standard);
-    background: rgba(251,250,252,0.97); backdrop-filter: blur(20px);
-  }
-  .mobile-menu.open { max-height: 480px; opacity: 1; border-bottom: 1px solid var(--color-gray-200); }
-  .mobile-menu-link {
-    display: block; padding: var(--space-4) 0; font-size: var(--fs-base); font-weight: var(--fw-medium);
-    color: var(--color-gray-700); border-bottom: 1px solid var(--color-gray-100);
-  }
-  .mobile-menu-actions { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-5) 0; }
-
   /* ---------- Hero ---------- */
   .hero {
     position: relative;
@@ -167,16 +148,12 @@
     .stats-band { grid-template-columns: 1fr 1fr; }
   }
   @media (max-width: 640px) {
-    /* Inline links/buttons give way to a real hamburger menu — standard
-       mobile pattern, and avoids the brand subtitle squeezing against
-       buttons that caused the wrapping bug earlier. */
+    /* Hero CTAs sit right below the nav and cover the same two actions,
+       so on small screens drop the nav down to just the brand mark —
+       avoids the subtitle text squeezing against the buttons. */
     .nav-brand .sub { display: none; }
-    .nav-links { display: none; }
-    .mobile-menu-toggle { display: flex; }
+    .nav-links .btn { display: none; }
     .nav { padding: var(--space-3) 0; }
-  }
-  @media (min-width: 641px) {
-    .mobile-menu { display: none !important; }
   }
   @media (max-width: 560px) {
     .hero-visual { grid-template-columns: 1fr 1fr; }
@@ -205,21 +182,7 @@
       <a href="/pages/login.html" class="btn btn-secondary btn-sm">Patient Login</a>
       <a href="/pages/register.html" class="btn btn-primary btn-sm">Create Account</a>
     </div>
-    <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Open menu" aria-expanded="false">
-      <i data-lucide="menu" id="menuIcon" style="width:24px;height:24px;"></i>
-    </button>
   </nav>
-
-  <div class="mobile-menu" id="mobileMenu">
-    <a href="#features" class="mobile-menu-link">Features</a>
-    <a href="#services" class="mobile-menu-link">Services</a>
-    <a href="#benefits" class="mobile-menu-link">Benefits</a>
-    <a href="#contact" class="mobile-menu-link">Contact</a>
-    <div class="mobile-menu-actions">
-      <a href="/pages/login.html" class="btn btn-secondary btn-block">Patient Login</a>
-      <a href="/pages/register.html" class="btn btn-primary btn-block">Create Account</a>
-    </div>
-  </div>
 </div>
 
 <main>
@@ -368,29 +331,11 @@
   </footer>
 </div>
 
-<script type="module">
-  import "/components/icons.js"; // wires up Lucide auto-render
-</script>
-
 <script>
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add("visible"); });
   }, { threshold: 0.15 });
   document.querySelectorAll(".reveal").forEach(el => observer.observe(el));
-
-  const menuToggle = document.getElementById("mobileMenuToggle");
-  const mobileMenu = document.getElementById("mobileMenu");
-  const menuIcon = document.getElementById("menuIcon");
-
-  function setMenuOpen(open) {
-    mobileMenu.classList.toggle("open", open);
-    menuToggle.setAttribute("aria-expanded", String(open));
-    menuIcon.setAttribute("data-lucide", open ? "x" : "menu");
-    if (window.lucide) window.lucide.createIcons();
-  }
-
-  menuToggle.addEventListener("click", () => setMenuOpen(!mobileMenu.classList.contains("open")));
-  mobileMenu.querySelectorAll("a").forEach(a => a.addEventListener("click", () => setMenuOpen(false)));
 </script>
 </body>
 </html>
