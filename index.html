@@ -147,6 +147,14 @@
     .benefit-row { grid-template-columns: 1fr; }
     .stats-band { grid-template-columns: 1fr 1fr; }
   }
+  @media (max-width: 640px) {
+    /* Hero CTAs sit right below the nav and cover the same two actions,
+       so on small screens drop the nav down to just the brand mark —
+       avoids the subtitle text squeezing against the buttons. */
+    .nav-brand .sub { display: none; }
+    .nav-links .btn { display: none; }
+    .nav { padding: var(--space-3) 0; }
+  }
   @media (max-width: 560px) {
     .hero-visual { grid-template-columns: 1fr 1fr; }
     .features-grid, .services-grid { grid-template-columns: 1fr; }
