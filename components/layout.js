@@ -23,7 +23,8 @@ export async function initLayout({ role, active, title }) {
     const root = document.getElementById("appShellRoot");
     root.innerHTML = `
       ${renderSidebar(role, active)}
-      <div class="shell-main" style="flex:1; display:flex; flex-direction:column; min-width:0;">
+      <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+      <div class="shell-main">
         ${renderTopbar({ title, profile })}
         <main class="main-content page-transition" id="mainContent"></main>
       </div>
@@ -41,6 +42,19 @@ export async function initLayout({ role, active, title }) {
         await logout(role);
       });
     }
+
+    // Mobile drawer: menu button opens it, close button / backdrop close it.
+    const sidebar = document.getElementById("appSidebar");
+    const backdrop = document.getElementById("sidebarBackdrop");
+    const menuToggleBtn = document.getElementById("menuToggleBtn");
+    const sidebarCloseBtn = document.getElementById("sidebarCloseBtn");
+
+    const openDrawer = () => { sidebar.classList.add("open"); backdrop.classList.add("open"); };
+    const closeDrawer = () => { sidebar.classList.remove("open"); backdrop.classList.remove("open"); };
+
+    if (menuToggleBtn) menuToggleBtn.addEventListener("click", openDrawer);
+    if (sidebarCloseBtn) sidebarCloseBtn.addEventListener("click", closeDrawer);
+    if (backdrop) backdrop.addEventListener("click", closeDrawer);
 
     return profile;
   } catch (err) {

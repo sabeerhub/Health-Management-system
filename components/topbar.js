@@ -10,7 +10,10 @@ export function renderTopbar({ title, profile }) {
 
   return `
     <header class="topbar">
-      <h2 style="font-size: var(--fs-md);">${title}</h2>
+      <div style="display:flex; align-items:center; gap: var(--space-3); min-width:0;">
+        <button class="menu-toggle" id="menuToggleBtn" aria-label="Open menu">${icon("menu", 20)}</button>
+        <h2 style="font-size: var(--fs-md); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${title}</h2>
+      </div>
       <div class="topbar-actions">
         <button class="icon-btn" aria-label="Notifications">
           ${icon("bell", 20)}
@@ -18,9 +21,6 @@ export function renderTopbar({ title, profile }) {
         </button>
         <div style="display:flex; align-items:center; gap: var(--space-2);">
           <div class="avatar" style="display:flex; align-items:center; justify-content:center; background:var(--color-role-light, var(--color-primary-light)); color: var(--color-role, var(--color-primary)); font-weight:700; font-size: var(--fs-sm);">${initials}</div>
-          <div style="display:none;" class="topbar-name-full">
-            <div style="font-weight:600; font-size: var(--fs-sm);">${profile?.full_name || ""}</div>
-          </div>
         </div>
       </div>
     </header>

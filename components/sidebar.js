@@ -46,13 +46,16 @@ export function renderSidebar(role, activeKey) {
   `).join("");
 
   return `
-    <aside class="sidebar">
+    <aside class="sidebar" id="appSidebar">
       <div class="sidebar-brand">
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none"><path d="M12 2L4 5v6c0 5 3.5 8.5 8 9 4.5-.5 8-4 8-9V5l-8-3z" fill="var(--color-role, var(--color-primary))"/></svg>
-        <div>
-          <div class="name">FUD HEALTH HMS</div>
-          <div class="sub">${ROLE_LABEL[role] || ""} Portal</div>
+        <div class="sidebar-brand-info">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none"><path d="M12 2L4 5v6c0 5 3.5 8.5 8 9 4.5-.5 8-4 8-9V5l-8-3z" fill="var(--color-role, var(--color-primary))"/></svg>
+          <div>
+            <div class="name">FUD HEALTH HMS</div>
+            <div class="sub">${ROLE_LABEL[role] || ""} Portal</div>
+          </div>
         </div>
+        <button class="sidebar-close" id="sidebarCloseBtn" aria-label="Close menu">${icon("close", 18)}</button>
       </div>
       <nav class="nav-group">${links}</nav>
       <nav class="nav-group" style="margin-top:auto;">

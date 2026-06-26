@@ -120,27 +120,46 @@ textarea.input { height: auto; min-height: 100px; padding-top: var(--space-3); r
   border: 1px solid var(--glass-border);
 }
 
-/* ---------- App shell: sidebar + topbar ---------- */
-.app-shell { display: flex; min-height: 100vh; }
+/* ---------- App shell: sidebar (slide-out drawer) + topbar ---------- */
+/* The sidebar is ALWAYS position:fixed — on desktop it sits docked open at
+   the left; on mobile it's off-canvas (translateX) until toggled open via
+   the topbar's menu button. Because it never participates in flex/flow
+   layout at any screen size, .shell-main/.main-content are just plain
+   block containers — no flex:1 height-matching tricks, no nested flex
+   chains to get wrong. This is deliberately simpler than the previous
+   "convert sidebar into a bottom tab bar" approach, which required fragile
+   flex-direction-column-on-`.app-shell` tricks that kept causing real bugs. */
+.app-shell { min-height: 100vh; }
 
 .sidebar {
   width: var(--sidebar-width);
-  flex-shrink: 0;
   background: var(--color-surface);
   border-right: 1px solid var(--color-gray-100);
   padding: var(--space-5) var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
   height: 100vh;
   overflow-y: auto;
+  z-index: 100;
+  transition: transform var(--dur-base) var(--ease-standard);
 }
-.sidebar-brand { display: flex; align-items: center; gap: var(--space-3); padding: 0 var(--space-2); }
+.sidebar-brand { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 0 var(--space-2); }
+.sidebar-brand-info { display: flex; align-items: center; gap: var(--space-3); }
 .sidebar-brand img { width: 36px; height: 36px; }
 .sidebar-brand .name { font-weight: var(--fw-bold); font-size: var(--fs-sm); line-height: 1.2; }
 .sidebar-brand .sub { font-size: 11px; color: var(--color-gray-500); }
+.sidebar-close { display: none; background: none; border: none; width: 32px; height: 32px; align-items: center; justify-content: center; border-radius: var(--radius-sm); color: var(--color-gray-500); }
+
+.sidebar-backdrop {
+  position: fixed; inset: 0; background: rgba(17, 24, 39, 0.4);
+  z-index: 90; opacity: 0; pointer-events: none;
+  transition: opacity var(--dur-base) var(--ease-standard);
+}
+.sidebar-backdrop.open { opacity: 1; pointer-events: auto; }
 
 .nav-group { display: flex; flex-direction: column; gap: var(--space-1); }
 .nav-link {
@@ -152,16 +171,24 @@ textarea.input { height: auto; min-height: 100px; padding-top: var(--space-3); r
   font-weight: var(--fw-medium);
   transition: background var(--dur-fast) var(--ease-standard), color var(--dur-fast) var(--ease-standard);
 }
-.nav-link svg { width: 20px; height: 20px; flex-shrink: 0; }
+.nav-link i, .nav-link svg { width: 20px; height: 20px; flex-shrink: 0; }
 .nav-link:hover { background: var(--color-gray-100); color: var(--color-gray-900); }
 .nav-link.active {
   background: var(--color-role-light, var(--color-primary-light));
   color: var(--color-role, var(--color-primary));
 }
 
+.shell-main { margin-left: var(--sidebar-width); display: flex; flex-direction: column; min-height: 100vh; }
+
+.menu-toggle {
+  display: none; background: none; border: none; width: 40px; height: 40px;
+  align-items: center; justify-content: center; border-radius: var(--radius-pill);
+  background: var(--color-gray-100); color: var(--color-gray-700); flex-shrink: 0;
+}
+
 .topbar {
   height: var(--topbar-height);
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
   padding: 0 var(--space-6);
   background: rgba(251, 250, 252, 0.85);
   backdrop-filter: var(--glass-blur);
@@ -277,54 +304,25 @@ table.data-table { min-width: 600px; }
 
 /* ---------- Responsive shell ---------- */
 @media (max-width: 1024px) {
-  :root { --sidebar-width: 220px; }
+  :root { --sidebar-width: 264px; }
 }
 @media (max-width: 768px) {
-  .app-shell { flex-direction: column; }
   .sidebar {
-    width: 100%; height: auto; position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
-    flex-direction: row; align-items: stretch; gap: 0;
-    padding: var(--space-1) var(--space-2);
-    padding-bottom: max(var(--space-1), env(safe-area-inset-bottom));
-    border-right: none; border-top: 1px solid var(--color-gray-100);
-    box-shadow: 0 -4px 16px rgba(17,24,39,0.06);
+    transform: translateX(-100%);
+    box-shadow: var(--shadow-lg);
   }
-  .sidebar-brand { display: none; }
-  .sidebar .nav-link span { display: none; }
-  .sidebar .nav-link { flex-direction: column; gap: 2px; padding: var(--space-2) var(--space-2); border-radius: var(--radius-sm); }
-  .sidebar .nav-link svg { width: 22px; height: 22px; }
-  .nav-group {
-    flex-direction: row; flex: 1; gap: var(--space-1);
-    justify-content: space-around; align-items: center;
-    overflow-x: auto; scrollbar-width: none;
-  }
-  .nav-group::-webkit-scrollbar { display: none; }
-  .nav-group:last-child { flex: 0 0 auto; border-left: 1px solid var(--color-gray-100); padding-left: var(--space-2); margin-left: var(--space-1); }
-  .main-content { padding: var(--space-4); padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
-  /* Force natural content-based sizing instead of the nested flex:1 chain
-     (app-shell -> shell-main -> main-content) used on desktop. That chain
-     was compounding into a far-too-tall container on mobile — overriding
-     with !important here because shell-main's flex:1 is set via inline
-     style in layout.js, which only a !important stylesheet rule can beat. */
-  .shell-main { flex: none !important; display: block !important; min-height: 0 !important; }
-  .main-content { flex: none !important; min-height: 0 !important; }
-  .topbar {
-    padding: 0 var(--space-4);
-    /* Drop the glass blur on mobile: backdrop-filter + position:sticky on
-       dynamically-injected content is a known compositing bug on weaker
-       Android GPUs, where the blur layer can paint as a blank overlay
-       instead of just the topbar strip. Solid background is bulletproof. */
-    position: relative;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    background: var(--color-bg);
-  }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-close { display: flex; }
+  .shell-main { margin-left: 0; }
+  .menu-toggle { display: flex; }
+  .main-content { padding: var(--space-4); }
+  .topbar { padding: 0 var(--space-4); }
   .topbar .search { display: none; }
   .topbar h2 { font-size: var(--fs-base); }
 }
 
 @media (max-width: 480px) {
-  .main-content { padding: var(--space-3); padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+  .main-content { padding: var(--space-3); }
   .topbar { height: 64px; padding: 0 var(--space-3); }
   .card { padding: var(--space-4); border-radius: var(--radius-md); }
   .modal { padding: var(--space-5); border-radius: var(--radius-md); }
