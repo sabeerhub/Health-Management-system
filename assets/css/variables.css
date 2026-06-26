@@ -100,4 +100,4 @@
 body[data-role="admin"]      { --color-role: var(--color-admin);      --color-role-light: var(--color-admin-light); }
 body[data-role="doctor"]     { --color-role: var(--color-doctor);     --color-role-light: var(--color-doctor-light); }
 body[data-role="pharmacist"] { --color-role: var(--color-pharmacist); --color-role-light: var(--color-pharmacist-light); }
-body[data-role="patient"]    { --color-role: var(--color-patient);    --color-role-light: var(--color-patient-light); }
+body[data-role="patient"]    { --color-role: var(--color-primary);    --color-role-light: var(--color-primary-light); }
