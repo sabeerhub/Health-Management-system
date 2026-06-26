@@ -86,4 +86,17 @@ if (typeof window !== "undefined") {
   }
   window.addEventListener("error", (e) => showFatalError("Script error", e.error || e.message));
   window.addEventListener("unhandledrejection", (e) => showFatalError("Unhandled promise rejection", e.reason));
+
+  // ---- Temporary control test ----
+  // A banner using ONLY inline styles, zero dependency on our CSS files or
+  // design system. If this doesn't show up, the problem isn't our CSS —
+  // something more fundamental is blocking script-inserted content.
+  document.addEventListener("DOMContentLoaded", () => {
+    const banner = document.createElement("div");
+    banner.textContent = "✅ JS CONTROL TEST — if you can read this yellow banner, JavaScript and DOM insertion both work fine on this device.";
+    banner.style.cssText =
+      "background:#FACC15; color:#000; padding:14px; font-size:15px; font-weight:bold; " +
+      "text-align:center; position:relative; z-index:99999;";
+    document.body.prepend(banner);
+  });
 }
