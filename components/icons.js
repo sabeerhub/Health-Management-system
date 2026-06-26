@@ -88,29 +88,30 @@ if (typeof window !== "undefined") {
   window.addEventListener("unhandledrejection", (e) => showFatalError("Unhandled promise rejection", e.reason));
 
   // ---- Temporary control test ----
-  // A banner using ONLY inline styles, zero dependency on our CSS files or
-  // design system, PLUS two banners using our actual .topbar/.main-content
-  // classes — side by side, this isolates exactly which CSS class (if any)
-  // is the broken one.
+  // Mimics the EXACT nesting structure layout.js produces (shell-main
+  // wrapping topbar + main-content, flex:1 all the way down) but with
+  // short, known-length text — isolates whether the huge gap comes from
+  // this shell structure itself, or from something in each page's own
+  // cloned template content.
   document.addEventListener("DOMContentLoaded", () => {
     const plain = document.createElement("div");
-    plain.textContent = "✅ TEST 1 (plain inline styles): if you can read this yellow banner, JS + DOM both work.";
+    plain.textContent = "✅ TEST 1: JS + DOM work.";
     plain.style.cssText =
-      "background:#FACC15; color:#000; padding:14px; font-size:14px; font-weight:bold; " +
-      "text-align:center; position:relative; z-index:99999;";
+      "background:#FACC15; color:#000; padding:14px; font-size:14px; font-weight:bold; position:relative; z-index:99999;";
 
-    const topbarTest = document.createElement("div");
-    topbarTest.className = "topbar";
-    topbarTest.style.cssText = "position:relative; z-index:99999; border:4px solid red;";
-    topbarTest.textContent = "TEST 2 (.topbar class)";
+    const shellTest = document.createElement("div");
+    shellTest.style.cssText = "flex:1; display:flex; flex-direction:column; min-width:0; border:4px solid green; position:relative; z-index:99999;";
+    shellTest.innerHTML = `
+      <div class="topbar" style="border:4px solid red;">TEST 2 (topbar, real class)</div>
+      <main class="main-content page-transition" style="border:4px solid blue; background:#fff;">TEST 3 (main-content, real class, real nesting)</main>
+    `;
 
-    const mainTest = document.createElement("div");
-    mainTest.className = "main-content";
-    mainTest.style.cssText = "position:relative; z-index:99999; border:4px solid blue; background:#fff;";
-    mainTest.textContent = "TEST 3 (.main-content class)";
+    const wrapper = document.createElement("div");
+    wrapper.className = "app-shell";
+    wrapper.style.cssText = "border:4px solid purple; position:relative; z-index:99999;";
+    wrapper.appendChild(shellTest);
 
-    document.body.prepend(mainTest);
-    document.body.prepend(topbarTest);
+    document.body.prepend(wrapper);
     document.body.prepend(plain);
   });
 }

@@ -301,6 +301,13 @@ table.data-table { min-width: 600px; }
   .nav-group::-webkit-scrollbar { display: none; }
   .nav-group:last-child { flex: 0 0 auto; border-left: 1px solid var(--color-gray-100); padding-left: var(--space-2); margin-left: var(--space-1); }
   .main-content { padding: var(--space-4); padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+  /* Force natural content-based sizing instead of the nested flex:1 chain
+     (app-shell -> shell-main -> main-content) used on desktop. That chain
+     was compounding into a far-too-tall container on mobile — overriding
+     with !important here because shell-main's flex:1 is set via inline
+     style in layout.js, which only a !important stylesheet rule can beat. */
+  .shell-main { flex: none !important; display: block !important; min-height: 0 !important; }
+  .main-content { flex: none !important; min-height: 0 !important; }
   .topbar {
     padding: 0 var(--space-4);
     /* Drop the glass blur on mobile: backdrop-filter + position:sticky on
