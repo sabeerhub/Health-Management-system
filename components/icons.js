@@ -89,14 +89,28 @@ if (typeof window !== "undefined") {
 
   // ---- Temporary control test ----
   // A banner using ONLY inline styles, zero dependency on our CSS files or
-  // design system. If this doesn't show up, the problem isn't our CSS —
-  // something more fundamental is blocking script-inserted content.
+  // design system, PLUS two banners using our actual .topbar/.main-content
+  // classes — side by side, this isolates exactly which CSS class (if any)
+  // is the broken one.
   document.addEventListener("DOMContentLoaded", () => {
-    const banner = document.createElement("div");
-    banner.textContent = "✅ JS CONTROL TEST — if you can read this yellow banner, JavaScript and DOM insertion both work fine on this device.";
-    banner.style.cssText =
-      "background:#FACC15; color:#000; padding:14px; font-size:15px; font-weight:bold; " +
+    const plain = document.createElement("div");
+    plain.textContent = "✅ TEST 1 (plain inline styles): if you can read this yellow banner, JS + DOM both work.";
+    plain.style.cssText =
+      "background:#FACC15; color:#000; padding:14px; font-size:14px; font-weight:bold; " +
       "text-align:center; position:relative; z-index:99999;";
-    document.body.prepend(banner);
+
+    const topbarTest = document.createElement("div");
+    topbarTest.className = "topbar";
+    topbarTest.style.cssText = "position:relative; z-index:99999; border:4px solid red;";
+    topbarTest.textContent = "TEST 2 (.topbar class)";
+
+    const mainTest = document.createElement("div");
+    mainTest.className = "main-content";
+    mainTest.style.cssText = "position:relative; z-index:99999; border:4px solid blue; background:#fff;";
+    mainTest.textContent = "TEST 3 (.main-content class)";
+
+    document.body.prepend(mainTest);
+    document.body.prepend(topbarTest);
+    document.body.prepend(plain);
   });
 }
