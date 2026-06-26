@@ -68,4 +68,22 @@ if (typeof window !== "undefined") {
     childList: true,
     subtree: true,
   });
+
+  // ---- Temporary diagnostic safety net ----
+  // Surfaces ANY uncaught error or rejected promise directly on screen as a
+  // visible red banner, instead of leaving a silent blank page. This is a
+  // debugging aid while we track down a real bug, not permanent UI.
+  function showFatalError(label, err) {
+    const banner = document.createElement("div");
+    banner.style.cssText =
+      "position:fixed; top:0; left:0; right:0; z-index:9999; padding:16px; " +
+      "background:#FEE2E2; border-bottom:3px solid #EF4444; color:#991B1B; " +
+      "font-family:monospace; font-size:12px; white-space:pre-wrap; word-break:break-word; " +
+      "max-height:60vh; overflow:auto;";
+    const message = (err && (err.stack || err.message)) || String(err);
+    banner.textContent = `${label} — please screenshot this:\n${message}`;
+    document.body.appendChild(banner);
+  }
+  window.addEventListener("error", (e) => showFatalError("Script error", e.error || e.message));
+  window.addEventListener("unhandledrejection", (e) => showFatalError("Unhandled promise rejection", e.reason));
 }
