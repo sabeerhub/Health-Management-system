@@ -7,7 +7,7 @@
 // session token, and the function re-checks role server-side.
 // ==========================================================================
 
-import { supabase } from "../supabaseClient.js";
+import { supabase } from "../supabaseClient.js?v2";
 
 export async function listDoctors() {
   const { data, error } = await supabase

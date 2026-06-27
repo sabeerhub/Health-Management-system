@@ -4,7 +4,7 @@
 // Docs: https://developers.korapay.com/docs/checkout-standard
 // ==========================================================================
 
-import { KORAPAY_PUBLIC_KEY } from "./config.js";
+import { KORAPAY_PUBLIC_KEY } from "./config.js?v2";
 
 let scriptLoaded = false;
 

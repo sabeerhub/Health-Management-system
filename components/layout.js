@@ -9,9 +9,9 @@
 //   4. Wires the Log out link to the real supabase.auth.signOut() call.
 // ==========================================================================
 
-import { requireRole, logout } from "/assets/js/auth.js";
-import { renderSidebar } from "/components/sidebar.js";
-import { renderTopbar } from "/components/topbar.js";
+import { requireRole, logout } from "/assets/js/auth.js?v2";
+import { renderSidebar } from "/components/sidebar.js?v2";
+import { renderTopbar } from "/components/topbar.js?v2";
 
 export async function initLayout({ role, active, title }) {
   try {

@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Create Patient Account — FUD Health HMS</title>
-<link rel="stylesheet" href="/assets/css/variables.css">
-<link rel="stylesheet" href="/assets/css/base.css">
-<link rel="stylesheet" href="/assets/css/components.css">
+<link rel="stylesheet" href="/assets/css/variables.css?v2">
+<link rel="stylesheet" href="/assets/css/base.css?v2">
+<link rel="stylesheet" href="/assets/css/components.css?v2">
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <style>
   body { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: var(--space-5); background: radial-gradient(60% 50% at 50% 0%, rgba(37,99,235,0.08), transparent 70%), var(--color-bg); }
@@ -131,9 +131,9 @@
 
 <script type="module">
   import "/components/icons.js"; // wires up Lucide auto-render
-  import { registerPatient } from "/assets/js/auth.js";
-  import { showToast } from "/assets/js/toast.js";
-  import { isValidRegNumber, isValidEmail, isStrongPassword, passwordsMatch, bindFieldValidation } from "/assets/js/validators.js";
+  import { registerPatient } from "/assets/js/auth.js?v2";
+  import { showToast } from "/assets/js/toast.js?v2";
+  import { isValidRegNumber, isValidEmail, isStrongPassword, passwordsMatch, bindFieldValidation } from "/assets/js/validators.js?v2";
 
   const regInput = document.getElementById("regNumber");
   const regHint = document.getElementById("regNumberHint");

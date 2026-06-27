@@ -2,7 +2,7 @@
 // FUD HEALTH HMS — VALIDATORS
 // ==========================================================================
 
-import { REG_NUMBER_REGEX } from "./config.js";
+import { REG_NUMBER_REGEX } from "./config.js?v2";
 
 export function isValidRegNumber(value) {
   return REG_NUMBER_REGEX.test(value.trim().toUpperCase());

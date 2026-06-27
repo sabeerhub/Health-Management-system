@@ -7,7 +7,7 @@
 // to double-check a transaction immediately.
 // ==========================================================================
 
-import { supabase } from "../supabaseClient.js";
+import { supabase } from "../supabaseClient.js?v2";
 
 export async function listPaymentsForPatient(patientId) {
   const { data, error } = await supabase

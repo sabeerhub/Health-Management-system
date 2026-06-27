@@ -4,9 +4,9 @@
 // call, shared by all 4 login pages (patient + 3 hidden staff logins).
 // ==========================================================================
 
-import { openModal, closeModal } from "./modal.js";
-import { requestPasswordReset } from "/assets/js/auth.js";
-import { showToast } from "/assets/js/toast.js";
+import { openModal, closeModal } from "./modal.js?v2";
+import { requestPasswordReset } from "/assets/js/auth.js?v2";
+import { showToast } from "/assets/js/toast.js?v2";
 
 export function wireForgotPassword(linkId) {
   const link = document.getElementById(linkId);

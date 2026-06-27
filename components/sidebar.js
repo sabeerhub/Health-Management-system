@@ -2,7 +2,7 @@
 // FUD HEALTH HMS — SIDEBAR COMPONENT
 // ==========================================================================
 
-import { icon } from "./icons.js";
+import { icon } from "./icons.js?v2";
 
 const NAV_BY_ROLE = {
   admin: [

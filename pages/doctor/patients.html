@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Patients — FUD Health HMS</title>
-<link rel="stylesheet" href="/assets/css/variables.css">
-<link rel="stylesheet" href="/assets/css/base.css">
-<link rel="stylesheet" href="/assets/css/components.css">
+<link rel="stylesheet" href="/assets/css/variables.css?v2">
+<link rel="stylesheet" href="/assets/css/base.css?v2">
+<link rel="stylesheet" href="/assets/css/components.css?v2">
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <style> .search-bar { max-width: 360px; margin-bottom: var(--space-5); } </style>
 </head>
@@ -33,14 +33,14 @@
 </template>
 
 <script type="module">
-  import { initLayout } from "/components/layout.js";
-  import { listPatients, searchPatients } from "/assets/js/api/patients.js";
-  import { listAppointmentsForPatient } from "/assets/js/api/appointments.js";
-  import { listRecordsForPatient, addMedicalRecord } from "/assets/js/api/medicalRecords.js";
-  import { listPrescriptionsForPatient } from "/assets/js/api/prescriptions.js";
-  import { openModal, closeModal } from "/components/modal.js";
-  import { showToast } from "/assets/js/toast.js";
-  import { icon } from "/components/icons.js";
+  import { initLayout } from "/components/layout.js?v2";
+  import { listPatients, searchPatients } from "/assets/js/api/patients.js?v2";
+  import { listAppointmentsForPatient } from "/assets/js/api/appointments.js?v2";
+  import { listRecordsForPatient, addMedicalRecord } from "/assets/js/api/medicalRecords.js?v2";
+  import { listPrescriptionsForPatient } from "/assets/js/api/prescriptions.js?v2";
+  import { openModal, closeModal } from "/components/modal.js?v2";
+  import { showToast } from "/assets/js/toast.js?v2";
+  import { icon } from "/components/icons.js?v2";
 
   const profile = await initLayout({ role: "doctor", active: "patients", title: "Patients" });
   let debounceTimer;

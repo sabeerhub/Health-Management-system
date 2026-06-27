@@ -2,7 +2,7 @@
 // FUD HEALTH HMS — TOPBAR COMPONENT
 // ==========================================================================
 
-import { icon } from "./icons.js";
+import { icon } from "./icons.js?v2";
 
 export function renderTopbar({ title, profile }) {
   const initials = (profile?.full_name || "U")

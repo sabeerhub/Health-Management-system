@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Settings — FUD Health HMS</title>
-<link rel="stylesheet" href="/assets/css/variables.css">
-<link rel="stylesheet" href="/assets/css/base.css">
-<link rel="stylesheet" href="/assets/css/components.css">
+<link rel="stylesheet" href="/assets/css/variables.css?v2">
+<link rel="stylesheet" href="/assets/css/base.css?v2">
+<link rel="stylesheet" href="/assets/css/components.css?v2">
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <style>
   .perm-table th, .perm-table td { text-align: center; }
@@ -58,9 +58,9 @@
 </template>
 
 <script type="module">
-  import { initLayout } from "/components/layout.js";
-  import { supabase } from "/assets/js/supabaseClient.js";
-  import { showToast } from "/assets/js/toast.js";
+  import { initLayout } from "/components/layout.js?v2";
+  import { supabase } from "/assets/js/supabaseClient.js?v2";
+  import { showToast } from "/assets/js/toast.js?v2";
 
   const profile = await initLayout({ role: "admin", active: "settings", title: "Settings" });
   if (profile) {

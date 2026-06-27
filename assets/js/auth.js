@@ -2,8 +2,8 @@
 // FUD HEALTH HMS — AUTH MODULE
 // ==========================================================================
 
-import { supabase } from "./supabaseClient.js";
-import { ROLE_HOME, ROLE_LOGIN } from "./config.js";
+import { supabase } from "./supabaseClient.js?v2";
+import { ROLE_HOME, ROLE_LOGIN } from "./config.js?v2";
 
 /**
  * Registers a PATIENT account only. Staff accounts (doctor/pharmacist/admin)

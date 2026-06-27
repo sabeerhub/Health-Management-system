@@ -2,7 +2,7 @@
 // FUD HEALTH HMS — PHARMACY STOCK API
 // ==========================================================================
 
-import { supabase } from "../supabaseClient.js";
+import { supabase } from "../supabaseClient.js?v2";
 
 export async function listStock() {
   const { data, error } = await supabase.from("pharmacy_stock").select("*").order("medicine_name", { ascending: true });

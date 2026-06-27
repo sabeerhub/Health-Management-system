@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Profile — FUD Health HMS</title>
-<link rel="stylesheet" href="/assets/css/variables.css">
-<link rel="stylesheet" href="/assets/css/base.css">
-<link rel="stylesheet" href="/assets/css/components.css">
+<link rel="stylesheet" href="/assets/css/variables.css?v2">
+<link rel="stylesheet" href="/assets/css/base.css?v2">
+<link rel="stylesheet" href="/assets/css/components.css?v2">
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 </head>
 <body data-role="patient">
@@ -47,9 +47,9 @@
 </template>
 
 <script type="module">
-  import { initLayout } from "/components/layout.js";
-  import { getPatientProfile, updateMyPatientProfile } from "/assets/js/api/patients.js";
-  import { showToast } from "/assets/js/toast.js";
+  import { initLayout } from "/components/layout.js?v2";
+  import { getPatientProfile, updateMyPatientProfile } from "/assets/js/api/patients.js?v2";
+  import { showToast } from "/assets/js/toast.js?v2";
 
   const profile = await initLayout({ role: "patient", active: "profile", title: "My Profile" });
   if (profile) {

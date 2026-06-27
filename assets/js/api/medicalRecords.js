@@ -2,7 +2,7 @@
 // FUD HEALTH HMS — MEDICAL RECORDS API
 // ==========================================================================
 
-import { supabase } from "../supabaseClient.js";
+import { supabase } from "../supabaseClient.js?v2";
 
 export async function listRecordsForPatient(patientId) {
   const { data, error } = await supabase

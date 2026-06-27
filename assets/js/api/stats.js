@@ -2,7 +2,7 @@
 // FUD HEALTH HMS — DASHBOARD STATS API
 // ==========================================================================
 
-import { supabase } from "../supabaseClient.js";
+import { supabase } from "../supabaseClient.js?v2";
 
 async function count(table, filters = {}) {
   let q = supabase.from(table).select("*", { count: "exact", head: true });

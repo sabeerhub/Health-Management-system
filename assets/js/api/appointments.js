@@ -2,7 +2,7 @@
 // FUD HEALTH HMS — APPOINTMENTS API
 // ==========================================================================
 
-import { supabase } from "../supabaseClient.js";
+import { supabase } from "../supabaseClient.js?v2";
 
 const SELECT_FULL = `
   id, scheduled_at, reason, status, notes, created_at,

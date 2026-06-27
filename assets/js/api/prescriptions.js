@@ -5,7 +5,7 @@
 // — there's no separate inbox to push to, the query *is* the inbox.
 // ==========================================================================
 
-import { supabase } from "../supabaseClient.js";
+import { supabase } from "../supabaseClient.js?v2";
 
 const SELECT_FULL = `
   id, medication, dosage, duration, notes, status, created_at,

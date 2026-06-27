@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>Doctor Sign In — FUD Health HMS</title>
-<link rel="stylesheet" href="/assets/css/variables.css">
-<link rel="stylesheet" href="/assets/css/base.css">
-<link rel="stylesheet" href="/assets/css/components.css">
+<link rel="stylesheet" href="/assets/css/variables.css?v2">
+<link rel="stylesheet" href="/assets/css/base.css?v2">
+<link rel="stylesheet" href="/assets/css/components.css?v2">
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <style>
   html, body { height: 100%; }
@@ -98,8 +98,8 @@
 
 <script type="module">
   import "/components/icons.js"; // wires up Lucide auto-render
-  import { loginAsRole, redirectToRoleHome, getCurrentProfile } from "/assets/js/auth.js";
-  import { showToast } from "/assets/js/toast.js";
+  import { loginAsRole, redirectToRoleHome, getCurrentProfile } from "/assets/js/auth.js?v2";
+  import { showToast } from "/assets/js/toast.js?v2";
 
   const existing = await getCurrentProfile();
   if (existing && existing.role === "doctor") redirectToRoleHome(existing.role);
@@ -127,7 +127,7 @@
       btn.textContent = "Sign In";
     }
   });
-  import { wireForgotPassword } from "/components/forgotPassword.js";
+  import { wireForgotPassword } from "/components/forgotPassword.js?v2";
   wireForgotPassword("forgotLink");
 </script>
 </body>
