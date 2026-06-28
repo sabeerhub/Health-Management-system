@@ -103,8 +103,10 @@ switched to environment-variable-based config instead of hardcoding keys) — se
    ```
    Set secrets: `supabase secrets set SUPABASE_SERVICE_ROLE_KEY=... KORAPAY_SECRET_KEY=sk_test_...`
 7. Get a free Korapay test account, add your **public** key (`pk_test_...`) as the `KORAPAY_PUBLIC_KEY`
-   environment variable in Vercel (same place as step 3) and redeploy. Set the `korapay-webhook`
-   function's URL as your webhook URL in Korapay's test dashboard.
+   environment variable in Vercel (same place as step 3) and redeploy. The webhook URL is sent
+   per-transaction (see `notification_url` in `assets/js/korapay.js`), so you do **not** need to
+   touch Korapay's account-wide webhook setting — this works safely even on a Korapay account
+   that's also used by other unrelated projects.
 8. That's it — every push to `main` redeploys automatically via Vercel.
 
 ## Project structure

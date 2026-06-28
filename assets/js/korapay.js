@@ -4,7 +4,7 @@
 // Docs: https://developers.korapay.com/docs/checkout-standard
 // ==========================================================================
 
-import { KORAPAY_PUBLIC_KEY } from "./config.js?v2";
+import { KORAPAY_PUBLIC_KEY, SUPABASE_URL } from "./config.js?v2";
 
 let scriptLoaded = false;
 
@@ -34,6 +34,11 @@ export async function openKorapayCheckout({ amount, reference, customer, onSucce
     amount,
     currency: "NGN",
     customer,
+    // Per-transaction webhook destination — works independently of whatever
+    // the Korapay account's global "Settings > API Configuration" webhook
+    // URL is set to, so this is safe even on a Korapay account shared with
+    // other unrelated projects.
+    notification_url: `${SUPABASE_URL}/functions/v1/korapay-webhook`,
     onClose: () => { if (onClose) onClose(); },
     onSuccess: (data) => { if (onSuccess) onSuccess(data); },
     onFailed: (data) => { if (onFailed) onFailed(data); },
