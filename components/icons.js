@@ -74,13 +74,17 @@ if (typeof window !== "undefined") {
   // visible red banner, instead of leaving a silent blank page. This is a
   // debugging aid while we track down a real bug, not permanent UI.
   function showFatalError(label, err) {
+    const message = (err && (err.stack || err.message)) || String(err);
+    // Browsers redact errors from cross-origin scripts (like Korapay's
+    // checkout widget) down to a content-free "Script error." — showing
+    // that banner is just noise since there's no real detail to act on.
+    if (message === "Script error." || message === "Script error") return;
     const banner = document.createElement("div");
     banner.style.cssText =
       "position:fixed; top:0; left:0; right:0; z-index:9999; padding:16px; " +
       "background:#FEE2E2; border-bottom:3px solid #EF4444; color:#991B1B; " +
       "font-family:monospace; font-size:12px; white-space:pre-wrap; word-break:break-word; " +
       "max-height:60vh; overflow:auto;";
-    const message = (err && (err.stack || err.message)) || String(err);
     banner.textContent = `${label} — please screenshot this:\n${message}`;
     document.body.appendChild(banner);
   }
