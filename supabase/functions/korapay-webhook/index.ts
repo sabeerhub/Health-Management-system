@@ -51,7 +51,22 @@ Deno.serve(async (req) => {
       headers: { Authorization: `Bearer ${KORAPAY_SECRET_KEY}` },
     });
     const verifyJson = await verifyRes.json();
-    const verifiedStatus = verifyJson?.data?.status === "success" ? "success" : "failed";
+    const rawStatus = verifyJson?.data?.status;
+    console.log("Korapay verify response for", reference, "-> raw status:", rawStatus, "full body:", JSON.stringify(verifyJson));
+
+    // Korapay's charge status can be "success", "failed", "processing", or
+    // "pending" — only explicit failure states should mark the payment
+    // failed; anything still in progress should stay "pending" so the
+    // patient/admin can check again later instead of being told it failed
+    // when it may simply still be settling.
+    let verifiedStatus;
+    if (rawStatus === "success") {
+      verifiedStatus = "success";
+    } else if (rawStatus === "failed") {
+      verifiedStatus = "failed";
+    } else {
+      verifiedStatus = "pending";
+    }
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
     const { error } = await admin

@@ -55,7 +55,17 @@ Deno.serve(async (req) => {
       headers: { Authorization: `Bearer ${KORAPAY_SECRET_KEY}` },
     });
     const verifyJson = await verifyRes.json();
-    const verifiedStatus = verifyJson?.data?.status === "success" ? "success" : "failed";
+    const rawStatus = verifyJson?.data?.status;
+    console.log("Korapay verify response for", reference, "-> raw status:", rawStatus, "full body:", JSON.stringify(verifyJson));
+
+    let verifiedStatus;
+    if (rawStatus === "success") {
+      verifiedStatus = "success";
+    } else if (rawStatus === "failed") {
+      verifiedStatus = "failed";
+    } else {
+      verifiedStatus = "pending";
+    }
 
     const { error } = await admin.from("payments").update({ status: verifiedStatus }).eq("korapay_reference", reference);
     if (error) {
