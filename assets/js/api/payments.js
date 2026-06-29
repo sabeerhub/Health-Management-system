@@ -46,6 +46,25 @@ export async function verifyPaymentStatus(reference) {
   return data;
 }
 
+/**
+ * Admin clicks "Mark as Paid" or "Cancel Transaction" after checking the
+ * real Korapay merchant dashboard themselves. Still goes through the same
+ * admin-role-checked Edge Function as the automatic verify above — the
+ * browser never writes payment status directly, this just tells the
+ * server which outcome to record instead of asking Korapay's API for it.
+ */
+export async function markPaymentManually(reference, status) {
+  if (status !== "success" && status !== "failed") {
+    throw new Error('status must be "success" or "failed"');
+  }
+  const { data, error } = await supabase.functions.invoke("verify-payment", {
+    body: { reference, manualStatus: status },
+  });
+  if (error) throw error;
+  if (data?.error) throw new Error(data.error);
+  return data;
+}
+
 /** Lightweight client-side refresh — re-reads the row in case the webhook already updated it. */
 export async function refreshPayment(reference) {
   const { data, error } = await supabase.from("payments").select("*").eq("korapay_reference", reference).single();

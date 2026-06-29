@@ -16,7 +16,12 @@
 </div>
 
 <template id="pageContent">
-  <h3 style="margin-bottom: var(--space-4);">Transactions</h3>
+  <h3 style="margin-bottom: var(--space-2);">Transactions</h3>
+  <p class="text-muted" style="font-size: var(--fs-sm); margin-bottom: var(--space-4);">
+    For pending payments, check the reference against your
+    <a href="https://merchant.korapay.com" target="_blank" rel="noopener">Korapay merchant dashboard</a>
+    before confirming or cancelling.
+  </p>
   <div class="card">
     <div class="table-wrap">
       <table class="data-table">
@@ -29,10 +34,11 @@
 
 <script type="module">
   import { initLayout } from "/components/layout.js?v2";
-  import { listAllPayments, verifyPaymentStatus } from "/assets/js/api/payments.js?v2";
+  import { listAllPayments, verifyPaymentStatus, markPaymentManually } from "/assets/js/api/payments.js?v2";
   import { openReceipt } from "/assets/js/receipt.js?v2";
   import { showToast } from "/assets/js/toast.js?v2";
   import { icon } from "/components/icons.js?v2";
+  import { confirmAction } from "/components/modal.js?v2";
 
   const profile = await initLayout({ role: "admin", active: "payments", title: "Payments" });
   let payments = [];
@@ -54,14 +60,20 @@
           <td>₦${Number(p.amount).toLocaleString()}</td>
           <td><span class="badge ${badgeClass(p.status)}">${p.status}</span></td>
           <td>${new Date(p.created_at).toLocaleDateString()}</td>
-          <td style="display:flex; gap:6px;">
-            ${p.status === "pending" ? `<button class="btn btn-sm btn-secondary verify-btn" data-ref="${p.korapay_reference}">Verify</button>` : ""}
+          <td style="display:flex; gap:6px; flex-wrap:wrap;">
+            ${p.status === "pending" ? `
+              <button class="btn btn-sm btn-secondary verify-btn" data-ref="${p.korapay_reference}">Verify</button>
+              <button class="btn btn-sm mark-paid-btn" data-ref="${p.korapay_reference}" style="background:var(--color-pharmacist); color:#fff;">Mark Paid</button>
+              <button class="btn btn-sm btn-ghost cancel-payment-btn" data-ref="${p.korapay_reference}">Cancel</button>
+            ` : ""}
             <button class="btn btn-sm btn-ghost receipt-btn" data-id="${p.id}">${icon("download",14)}</button>
           </td>
         </tr>
       `).join("");
 
       tbody.querySelectorAll(".verify-btn").forEach(b => b.addEventListener("click", () => handleVerify(b.dataset.ref)));
+      tbody.querySelectorAll(".mark-paid-btn").forEach(b => b.addEventListener("click", () => handleManualMark(b.dataset.ref, "success")));
+      tbody.querySelectorAll(".cancel-payment-btn").forEach(b => b.addEventListener("click", () => handleManualMark(b.dataset.ref, "failed")));
       tbody.querySelectorAll(".receipt-btn").forEach(b => b.addEventListener("click", () => handleReceipt(b.dataset.id)));
     } catch (err) {
       showToast(err.message || "Could not load payments.", "error");
@@ -79,6 +91,26 @@
       await loadPayments();
     } catch (err) {
       showToast(err.message || "Verification requires the verify-payment Edge Function to be deployed.", "error");
+    }
+  }
+
+  async function handleManualMark(reference, status) {
+    const isPaid = status === "success";
+    const ok = await confirmAction({
+      title: isPaid ? "Mark this payment as paid?" : "Cancel this transaction?",
+      message: isPaid
+        ? "Only confirm this after checking the matching reference on your Korapay merchant dashboard."
+        : "This marks the transaction as failed/cancelled. This cannot be automatically undone.",
+      confirmText: isPaid ? "Mark as Paid" : "Cancel Transaction",
+      danger: !isPaid,
+    });
+    if (!ok) return;
+    try {
+      const result = await markPaymentManually(reference, status);
+      showToast(`Payment marked ${result.status}.`, isPaid ? "success" : "error");
+      await loadPayments();
+    } catch (err) {
+      showToast(err.message || "Could not update payment.", "error");
     }
   }
 

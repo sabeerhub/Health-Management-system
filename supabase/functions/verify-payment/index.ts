@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { reference } = await req.json();
+    const { reference, manualStatus } = await req.json();
     if (!reference) {
       return new Response(JSON.stringify({ error: "reference is required" }), {
         status: 400,
@@ -51,20 +51,31 @@ Deno.serve(async (req) => {
       });
     }
 
-    const verifyRes = await fetch(`https://api.korapay.com/merchant/api/v1/charges/${reference}`, {
-      headers: { Authorization: `Bearer ${KORAPAY_SECRET_KEY}` },
-    });
-    const verifyJson = await verifyRes.json();
-    const rawStatus = verifyJson?.data?.status;
-    console.log("Korapay verify response for", reference, "-> raw status:", rawStatus, "full body:", JSON.stringify(verifyJson));
-
     let verifiedStatus;
-    if (rawStatus === "success") {
-      verifiedStatus = "success";
-    } else if (rawStatus === "failed") {
-      verifiedStatus = "failed";
+
+    if (manualStatus === "success" || manualStatus === "failed") {
+      // Manual admin override — used when the admin has checked the real
+      // Korapay merchant dashboard themselves and wants to record that
+      // outcome directly, without depending on the automatic API check.
+      // Still fully gated by the admin-role check above; the browser can
+      // never set this on its own without going through this function.
+      verifiedStatus = manualStatus;
+      console.log("Manual admin override for", reference, "-> set to:", verifiedStatus);
     } else {
-      verifiedStatus = "pending";
+      const verifyRes = await fetch(`https://api.korapay.com/merchant/api/v1/charges/${reference}`, {
+        headers: { Authorization: `Bearer ${KORAPAY_SECRET_KEY}` },
+      });
+      const verifyJson = await verifyRes.json();
+      const rawStatus = verifyJson?.data?.status;
+      console.log("Korapay verify response for", reference, "-> raw status:", rawStatus, "full body:", JSON.stringify(verifyJson));
+
+      if (rawStatus === "success") {
+        verifiedStatus = "success";
+      } else if (rawStatus === "failed") {
+        verifiedStatus = "failed";
+      } else {
+        verifiedStatus = "pending";
+      }
     }
 
     const { error } = await admin.from("payments").update({ status: verifiedStatus }).eq("korapay_reference", reference);
