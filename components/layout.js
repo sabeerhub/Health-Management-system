@@ -39,7 +39,7 @@ export async function initLayout({ role, active, title }) {
     if (logoutLink) {
       logoutLink.addEventListener("click", async (e) => {
         e.preventDefault();
-        await logout(role);
+        await logout();
       });
     }
 

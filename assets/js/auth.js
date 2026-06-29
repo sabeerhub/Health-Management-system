@@ -3,7 +3,7 @@
 // ==========================================================================
 
 import { supabase } from "./supabaseClient.js?v2";
-import { ROLE_HOME, ROLE_LOGIN } from "./config.js?v2";
+import { ROLE_HOME, LOGIN_URL } from "./config.js?v2";
 
 /**
  * Registers a PATIENT account only. Staff accounts (doctor/pharmacist/admin)
@@ -40,14 +40,14 @@ export async function registerPatient({
 }
 
 /**
- * Logs in AND enforces that the account's role matches the role this login
- * page is for. A patient hitting /pages/admin/login.html with valid patient
- * credentials is signed back out immediately and shown a generic error —
- * never "wrong portal, try X" (that would leak which roles exist for a
- * given email). This is what makes the hidden staff URLs actually safe to
- * rely on rather than just "security by obscurity".
+ * Single shared login for every role. Authenticates, then reads back
+ * whatever role the account actually has from `profiles` — the caller
+ * (the login page) redirects based on that. The role itself is never
+ * trusted from anything the client sends; it's only ever read from the
+ * database row, which only service-role Edge Functions or the
+ * prevent_role_change-protected self-update path can ever modify.
  */
-export async function loginAsRole({ email, password, expectedRole }) {
+export async function login({ email, password }) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) throw new Error("Invalid email or password.");
 
@@ -62,17 +62,12 @@ export async function loginAsRole({ email, password, expectedRole }) {
     throw new Error("Invalid email or password.");
   }
 
-  if (profile.role !== expectedRole) {
-    await supabase.auth.signOut();
-    throw new Error("Invalid email or password.");
-  }
-
   return { user: data.user, profile };
 }
 
-export async function logout(role) {
+export async function logout() {
   await supabase.auth.signOut();
-  window.location.href = (role && ROLE_LOGIN[role]) || "/pages/login.html";
+  window.location.href = LOGIN_URL;
 }
 
 export async function getCurrentProfile() {
@@ -91,23 +86,31 @@ export async function getCurrentProfile() {
 /**
  * Call at the top of every protected dashboard page:
  *   await requireRole("doctor");
- * No session, or a session under the wrong role, both redirect to the
- * LOGIN page for that role — never to a dashboard. A patient session
- * hitting a doctor-only page must never be silently bounced to the
- * patient dashboard or any other authenticated surface; it goes back to
- * a sign-in screen, full stop.
+ * No session at all → the shared login page (nothing to send them "back"
+ * to). A valid session under a DIFFERENT role → that account's own
+ * dashboard, not a login screen — e.g. a patient session hitting
+ * /pages/admin/dashboard.html lands on /pages/patient/dashboard.html
+ * instead. Either way the protected page's own content never renders for
+ * the wrong role — and even if this check were somehow bypassed, every
+ * actual data request still goes through Postgres Row-Level Security and
+ * service-role-only Edge Functions, so no protected data is reachable
+ * regardless of what the frontend does.
  */
 export async function requireRole(expectedRole) {
   const profile = await getCurrentProfile();
-  if (!profile || profile.role !== expectedRole) {
-    window.location.href = ROLE_LOGIN[expectedRole] || "/pages/login.html";
+  if (!profile) {
+    window.location.href = LOGIN_URL;
+    return null;
+  }
+  if (profile.role !== expectedRole) {
+    window.location.href = ROLE_HOME[profile.role] || LOGIN_URL;
     return null;
   }
   return profile;
 }
 
 export function redirectToRoleHome(role) {
-  window.location.href = ROLE_HOME[role] || "/pages/login.html";
+  window.location.href = ROLE_HOME[role] || LOGIN_URL;
 }
 
 /**

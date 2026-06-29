@@ -105,7 +105,7 @@
           role: "pharmacist",
           licenseNumber: document.getElementById("newLicense").value.trim(),
         });
-        showToast("Pharmacist account created. Share this sign-in link: " + window.location.origin + "/pages/pharmacist/login.html", "success", 9000);
+        showToast("Pharmacist account created. Share this sign-in link: " + window.location.origin + "/pages/login.html", "success", 9000);
         closeModal();
         await loadPharmacists();
       } catch (err) {

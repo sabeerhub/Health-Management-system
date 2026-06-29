@@ -120,7 +120,7 @@
           specialty: document.getElementById("newDocSpecialty").value.trim(),
           licenseNumber: document.getElementById("newDocLicense").value.trim(),
         });
-        showToast("Doctor account created. Share this sign-in link: " + window.location.origin + "/pages/doctor/login.html", "success", 9000);
+        showToast("Doctor account created. Share this sign-in link: " + window.location.origin + "/pages/login.html", "success", 9000);
         closeModal();
         await loadDoctors();
       } catch (err) {

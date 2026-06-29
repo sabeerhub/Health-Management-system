@@ -3,40 +3,57 @@
 A complete, role-based Hospital Management System for the Federal University Dutse Health Centre.
 Vanilla HTML/CSS/JS (ES6 modules) + Supabase (Postgres, Auth, Storage, RLS) + Korapay (test mode) + Vercel.
 
-## 🔒 Public surface vs. staff surface
+## 🔒 Authentication & RBAC architecture
 
-This is the most important structural fact about the project, so it's first:
+This is the most important structural fact about the project, so it's first. As of the latest
+revision, this uses **one shared login page for every role** rather than separate hidden URLs per
+role (an earlier version of this build used hidden per-role login URLs; that approach was replaced
+because URL secrecy was never the real security boundary anyway — see below):
 
-- **Public** (linked from the landing page, nav, footer — discoverable by anyone):
-  `/`, `/pages/login.html` (patient sign-in), `/pages/register.html` (patient sign-up).
-- **Staff** (admin/doctor/pharmacist) **sign-in pages exist only at direct URLs** and are linked
-  from **nowhere** public — not the landing page, not the nav, not the footer, not even each other:
-  - `/pages/admin/login.html`
-  - `/pages/doctor/login.html`
-  - `/pages/pharmacist/login.html`
+- **One login, every role**: `/pages/login.html` is the only sign-in page in the entire app. A
+  patient, doctor, pharmacist, or admin all authenticate at the exact same URL with email + password.
+- **Role comes from the database, never the client**: after a successful sign-in, `login()` in
+  `assets/js/auth.js` reads the account's `role` straight from the `profiles` table and redirects
+  accordingly — `admin` → `/pages/admin/dashboard.html`, `doctor` → `/pages/doctor/dashboard.html`,
+  `pharmacist` → `/pages/pharmacist/dashboard.html`, `patient` → `/pages/patient/dashboard.html`.
+  Nothing about which dashboard a user lands on is ever decided by anything the browser sends.
+- **Patients self-register; staff never do.** `/pages/register.html` is patient-only — the
+  `handle_new_user` trigger in `database/schema.sql` hard-codes `role = 'patient'` for anything
+  created through that flow, regardless of what a tampered client might claim. Doctor and
+  Pharmacist accounts are created exclusively by an admin (via the Doctors/Staff pages in the
+  admin dashboard), which calls a service-role Edge Function — there is no staff registration
+  page anywhere, by design.
+- **Wrong-role access redirects to that account's OWN dashboard, not a login screen.**
+  `requireRole(role)` runs at the top of every protected page. No session at all → the shared
+  login page. A valid session under a *different* role → that account's real dashboard — e.g. a
+  patient session hitting `/pages/admin/dashboard.html` is sent to
+  `/pages/patient/dashboard.html`, not bounced back to sign in again.
+- **Frontend checks are a UX convenience, not the actual security boundary** — and this is true
+  regardless of which of the two URL strategies above is used. The real enforcement is server-side:
+  - **Row Level Security** policies on every table in `database/schema.sql` decide what each
+    authenticated role can read or write, checked by Postgres on every single query.
+  - A **`prevent_role_change` trigger** blocks any client — even a logged-in admin's own session —
+    from changing a profile's `role` column unless the request carries the service-role key, which
+    only ever happens inside the staff-creation Edge Functions.
+  - **Service-role Edge Functions** (`admin-create-staff`, `admin-delete-staff`, `verify-payment`)
+    independently re-check `profiles.role === 'admin'` server-side before doing anything privileged,
+    on top of whatever the frontend already checked.
 
-  Staff accounts are created exclusively by an admin (Doctors/Pharmacists pages in the admin
-  dashboard), and the admin is shown that staff member's sign-in URL right after creating the
-  account, to pass along directly. There is no "staff register" page anywhere — it doesn't exist.
-
-- **Every login page is role-locked**, not just role-aware: `loginAsRole()` in `assets/js/auth.js`
-  signs the user in, checks their `profiles.role` against the role the page is *for*, and if they
-  don't match, signs them back out and shows a generic "Invalid email or password" — never a hint
-  about which role the account actually has. A patient's valid credentials simply do not work on
-  `/pages/admin/login.html`, and the error message doesn't reveal why.
-- **Every protected dashboard page** calls `requireRole(role)` on load. No session, or a session
-  under the wrong role, both redirect to that role's **login page** — never to another dashboard,
-  never silently. A doctor session hitting `/pages/admin/dashboard.html` lands back on
-  `/pages/admin/login.html`, not on the doctor dashboard.
+  Because of this, even if `requireRole()` were bypassed entirely (browser dev tools, a buggy
+  redirect, anything), no actual protected data becomes reachable — every real data request still
+  has to pass RLS, and every privileged action still has to pass its Edge Function's own role check.
+  A true page-level HTTP 403 isn't possible here in the literal sense, since this is a static site
+  with no server process to intercept the request before the HTML is served — but the practical
+  effect is the same: the wrong-role page never renders its content, and no API call it could make
+  would succeed anyway.
 
 ## ✅ What's built — all 4 roles, fully wired to real Supabase queries
 
 - **Public**: redesigned landing page (Hero / Features / Hospital Services / Benefits / Statistics /
-  CTA / Footer — no portal cards, no staff exposure), patient login, patient registration with a
-  live password-strength meter and reg-number validation
-- **Admin**: dashboard stats, Add/Delete Doctor, Add/Delete Pharmacist (each shown the new staff
-  member's hidden login URL), patient directory + history viewer, all-appointments oversight,
-  all-payments view (manual re-verify, receipts), settings
+  CTA / Footer), one shared login, patient registration with a live password-strength meter and
+  reg-number validation
+- **Admin**: dashboard stats, Add/Delete Doctor, Add/Delete Pharmacist, patient directory + history
+  viewer, all-appointments oversight, all-payments view (manual re-verify, receipts), settings
 - **Doctor**: dashboard, patient directory + add diagnosis/notes, appointment approve/cancel/complete,
   create & track prescriptions
 - **Pharmacist**: dashboard with low-stock alerts, stock CRUD, real stock-decrementing dispense flow,
@@ -88,9 +105,10 @@ switched to environment-variable-based config instead of hardcoding keys) — se
 4. Redeploy (or push any commit) so Vercel runs the build with those variables available. Then go
    to `/pages/register.html` on your live site to create your own patient account.
 5. In SQL Editor, run: `update public.profiles set role = 'admin' where email = 'your@email.com';`
-   You're now an admin. **Bookmark `/pages/admin/login.html` directly** — it's not linked anywhere
-   in the UI on purpose. Use the dashboard from here on to create Doctor/Pharmacist accounts; each
-   creation shows you that staff member's own hidden login URL to pass along.
+   You're now an admin — sign in again at `/pages/login.html` with that same account and you'll
+   land on the admin dashboard automatically. Use it from here on to create Doctor/Pharmacist
+   accounts; each creation shows you a sign-in link to pass along (same shared `/pages/login.html`
+   URL — the account's role determines where it lands, not the URL).
 6. Install the Supabase CLI, run `supabase login` and `supabase link` to connect it to this project,
    then deploy the four Edge Functions (now correctly laid out under `supabase/functions/<name>/index.ts`,
    which is the structure the CLI actually expects — and also out of Vercel's reserved `/api` path,
@@ -112,12 +130,9 @@ switched to environment-variable-based config instead of hardcoding keys) — se
 ## Project structure
 
 ```
-/                         landing page (public, no staff links anywhere)
-/pages/login.html         patient login (public)
-/pages/register.html      patient self-registration (public)
-/pages/admin/login.html       hidden — admin sign-in, direct URL only
-/pages/doctor/login.html      hidden — doctor sign-in, direct URL only
-/pages/pharmacist/login.html  hidden — pharmacist sign-in, direct URL only
+/                         landing page (public)
+/pages/login.html        single shared login for ALL roles — redirects by account role after sign-in
+/pages/register.html     patient self-registration (public; staff never self-register)
 /pages/admin/*.html       dashboard, doctors, staff (pharmacists), patients, appointments, payments, settings
 /pages/doctor/*.html      dashboard, patients, appointments, prescriptions
 /pages/pharmacist/*.html  dashboard, stock, prescriptions
@@ -155,6 +170,7 @@ service-role, both re-verify with Korapay's API directly).
   on your end: in Supabase Dashboard → Authentication → URL Configuration, add
   `https://yourdomain.com/pages/reset-password.html` to the allowed redirect URLs, or the email
   link will be rejected.
-- **Hidden staff URLs are obscurity, not the actual security boundary** — the real boundary is
-  `loginAsRole()` + RLS + the `prevent_role_change` trigger. Even if someone guesses
-  `/pages/admin/login.html`, they still can't get in without real admin credentials.
+- **The real security boundary is server-side, not the login URL** — RLS policies plus the
+  `prevent_role_change` trigger plus each Edge Function's own admin-role check. Knowing the
+  (now single, public) login URL gives an attacker nothing without real credentials for an
+  account that actually has the role they're after.

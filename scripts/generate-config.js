@@ -54,12 +54,9 @@ export const ROLE_HOME = {
   patient: "/pages/patient/dashboard.html",
 };
 
-export const ROLE_LOGIN = {
-  admin: "/pages/admin/login.html",
-  doctor: "/pages/doctor/login.html",
-  pharmacist: "/pages/pharmacist/login.html",
-  patient: "/pages/login.html",
-};
+// One shared login for every role — the page authenticates first, then
+// reads the account's role from the database and redirects accordingly.
+export const LOGIN_URL = "/pages/login.html";
 `;
 
 const outPath = path.join(__dirname, "..", "assets", "js", "config.js");
